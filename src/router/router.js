@@ -1,4 +1,7 @@
 import { Home } from "../pages/home/home.js";
+import { Login, loginEvents } from "../pages/login/login.js";
+import { Register, registerEvents } from "../pages/register/register.js";
+
 
 export function Router(path = window.location.pathname) {
 
@@ -11,11 +14,13 @@ export function Router(path = window.location.pathname) {
             break;
 
         case "/login":
-            app.innerHTML = "<h1>Login</h1>";
+            app.innerHTML = Login();
+            loginEvents();
             break;
 
         case "/register":
-            app.innerHTML = "<h1>Register</h1>";
+            app.innerHTML = Register();
+            registerEvents();
             break;
 
         default:

@@ -2,7 +2,7 @@ export function Navbar() {
     return `
         <nav class="navbar">
 
-            <div class="picture">
+            <div class="picture h2">
                 <h2>CareerPath</h2>
             </div>
 
