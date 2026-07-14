@@ -167,3 +167,49 @@ export function Home() {
         </main>
     `;
 }
+
+export function homeEvents() {
+
+    const loginBtn = document.getElementById("goLogin");
+
+    if(loginBtn){
+
+        loginBtn.addEventListener("click", ()=>{
+
+            history.pushState({}, "", "/login");
+
+            window.dispatchEvent(new PopStateEvent("popstate"));
+
+        });
+
+    }
+
+    const registerBtn = document.getElementById("ctaRegister");
+
+    if(registerBtn){
+
+        registerBtn.addEventListener("click", ()=>{
+
+            history.pushState({}, "", "/register");
+
+            window.dispatchEvent(new PopStateEvent("popstate"));
+
+        });
+
+    }
+
+    const testBtn = document.getElementById("startTest");
+
+    if(testBtn){
+
+        testBtn.addEventListener("click", ()=>{
+
+            history.pushState({}, "", "/login");
+
+            window.dispatchEvent(new PopStateEvent("popstate"));
+
+        });
+
+    }
+
+}

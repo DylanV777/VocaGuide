@@ -6,6 +6,9 @@ document.getElementById("navbar").innerHTML = Navbar();
 document.getElementById("footer").innerHTML = Footer();
 
 Router();
+window.addEventListener("popstate", () => {
+    Router();
+});
 
 document.getElementById("homeBtn").addEventListener("click", () => {
     navigate("/");

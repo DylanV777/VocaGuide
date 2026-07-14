@@ -87,6 +87,8 @@ export function registerEvents() {
 
     const form = document.getElementById("registerForm");
 
+    if (form) {
+
     form.addEventListener("submit",(event)=>{
 
         event.preventDefault();
@@ -94,5 +96,23 @@ export function registerEvents() {
         console.log("Registro enviado");
 
     });
+
+    }
+
+    const goLogin = document.getElementById("goLogin");
+
+    if(goLogin){
+
+        goLogin.addEventListener("click",(event)=>{
+
+            event.preventDefault();
+
+            history.pushState({}, "", "/login");
+
+            window.dispatchEvent(new PopStateEvent("popstate"));
+
+    });
+
+}
 
 }

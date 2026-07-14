@@ -61,18 +61,38 @@ export function loginEvents() {
 
     const form = document.getElementById("loginForm");
 
-    form.addEventListener("submit", async (event) => {
+    if (form) {
 
-        event.preventDefault();
+        form.addEventListener("submit", async (event) => {
 
-        const email = document.getElementById("email").value.trim();
+            event.preventDefault();
 
-        const password = document.getElementById("password").value.trim();
+            const email = document.getElementById("email").value.trim();
 
-        const response = await login(email, password);
+            const password = document.getElementById("password").value.trim();
 
-        console.log(response);
+            const response = await login(email, password);
 
-    });
+            console.log(response);
+
+        });
+
+    }
+
+    const goRegister = document.getElementById("goRegister");
+
+    if (goRegister) {
+
+        goRegister.addEventListener("click", (event) => {
+
+            event.preventDefault();
+
+            history.pushState({}, "", "/register");
+
+            window.dispatchEvent(new PopStateEvent("popstate"));
+
+        });
+
+    }
 
 }

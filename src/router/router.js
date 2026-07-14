@@ -1,4 +1,4 @@
-import { Home } from "../pages/home/home.js";
+import { Home, homeEvents } from "../pages/home/home.js";
 import { Login, loginEvents } from "../pages/login/login.js";
 import { Register, registerEvents } from "../pages/register/register.js";
 
@@ -11,6 +11,7 @@ export function Router(path = window.location.pathname) {
 
         case "/":
             app.innerHTML = Home();
+            homeEvents();
             break;
 
         case "/login":
