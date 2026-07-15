@@ -1,1 +1,91 @@
+# 📊 CareerPathDB - Base de Datos
 
+-- Se crea los datos persoanlizados para la validacion de roles 
+CREATE TYPE tipo_rol AS ENUM ('usuario', 'administrador'); 
+
+-- Se crea la tabla para los Usuarios
+CREATE TABLE Usuario (
+id_usuario SERIAL PRIMARY KEY,
+nombre VARCHAR(100) NOT NULL,
+apellido VARCHAR(100) NOT NULL,
+correo VARCHAR(150) NOT NULL UNIQUE,
+contrasena VARCHAR(255) NOT NULL,
+rol tipo_rol NOT NULL,
+fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Se crea la tabla de carrera 
+CREATE TABLE Carrera (
+id_carrera SERIAL PRIMARY KEY,
+nombre VARCHAR(150) NOT NULL,
+descripcion TEXT, -- la descripcion puede ser opcional si se requiere o no 
+duracion VARCHAR(50) NOT NULL,
+modalidad VARCHAR(50) NOT NULL,
+habilidades_requeridas TEXT NOT NULL,
+areas_trabajo TEXT NOT NULL,
+salario_promedio DECIMAL(10,2) NOT NULL
+);
+
+-- Se crea la tabla de los perfiles que se manejaran 
+CREATE TABLE Perfil_Vocacional (
+id_perfil SERIAL PRIMARY KEY,
+nombre VARCHAR(100) NOT NULL,
+descripcion TEXT NOT NULL
+);
+
+-- Aqui estaran todas las preguntas que se requieran hacer 
+CREATE TABLE Pregunta (
+id_pregunta SERIAL PRIMARY KEY,
+pregunta TEXT NOT NULL
+);
+
+-- se crea la tala de opciones con su llave foranea de pregunta
+CREATE TABLE Opcion (
+id_opcion SERIAL PRIMARY KEY,
+id_pregunta INT NOT NULL,
+texto_opcion VARCHAR(255) NOT NULL,
+puntaje INT NOT NULL, 
+CONSTRAINT fk_pregunta FOREIGN KEY (id_pregunta) REFERENCES Pregunta(id_pregunta) ON DELETE CASCADE
+);
+
+-- Se crea la tabla de resultados del test con llaves foraneas en usuarios y del perfil vocacional 
+CREATE TABLE Resultado_Test (
+id_resultado SERIAL PRIMARY KEY,
+id_usuario INT NOT NULL,
+id_perfil INT NOT NULL,
+porcentaje_afinidad DECIMAL(5,2) NOT NULL,
+explicacion TEXT NOT NULL,
+fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT fk_usuario_resultado FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+CONSTRAINT fk_perfil_resultado FOREIGN KEY (id_perfil) REFERENCES Perfil_Vocacional(id_perfil) ON DELETE CASCADE
+);
+
+-- Se crea la tabla de respuestas, aqui se almacenaran las respuestas de los usuarios con llaves foraneas en resultado, pregunta y opciones
+CREATE TABLE Respuesta_Usuario (
+id_respuesta SERIAL PRIMARY KEY,
+id_resultado INT NOT NULL,
+id_pregunta INT NOT NULL,
+id_opcion INT NOT NULL,
+CONSTRAINT fk_resultado_respuesta FOREIGN KEY (id_resultado) REFERENCES Resultado_Test(id_resultado) ON DELETE CASCADE,
+CONSTRAINT fk_pregunta_respuesta FOREIGN KEY (id_pregunta) REFERENCES Pregunta(id_pregunta) ON DELETE CASCADE,
+CONSTRAINT fk_opcion_respuesta FOREIGN KEY (id_opcion) REFERENCES Opcion(id_opcion) ON DELETE CASCADE
+);
+
+-- Se crea la tabla de recomendaciones, se guardan las recomendaciones, con llaves foraneas en resultado y carrera
+CREATE TABLE Recomendacion (
+id_recomendacion SERIAL PRIMARY KEY,
+id_resultado INT NOT NULL,
+id_carrera INT NOT NULL,
+porcentaje DECIMAL(5,2) NOT NULL,
+CONSTRAINT fk_resultado_recomendacion FOREIGN KEY (id_resultado) REFERENCES Resultado_Test(id_resultado) ON DELETE CASCADE,
+CONSTRAINT fk_carrera_recomendacion FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera) ON DELETE CASCADE
+);
+
+-- se crea la tabla de las carreras favoritas de los usuarios, con llaves foraneas en usuario y carrera 
+CREATE TABLE Favorito (
+id_favorito SERIAL PRIMARY KEY,
+id_usuario INT NOT NULL,
+id_carrera INT NOT NULL,
+CONSTRAINT fk_usuario_favorito FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario) ON DELETE CASCADE,
+CONSTRAINT fk_carrera_favorito FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera) ON DELETE CASCADE
+);
