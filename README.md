@@ -33,89 +33,89 @@ La base de datos **CareerPathDB** fue creada para almacenar y gestionar toda la 
 | `nombre` | VARCHAR(100) | NOT NULL | Nombre(s) del usuario. |
 | `apellido` | VARCHAR(100) | NOT NULL | Apellido(s) del usuario. |
 | `correo` | VARCHAR(150) | NOT NULL, ÚNICO | Correo electrónico para el inicio de sesión. |
-| `contraseña` | VARCHAR(255) | NO NULO | Manejo de  contraseñas. |
+| `contraseña` | VARCHAR(255) | NOT NULL | Manejo de  contraseñas. |
 | `rol` | ENUM('USER', 'ADMIN') | NOT NULL | Rol utilizado para el control de accesos de los usuarios . |
 | `fecha_registro` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Crea una fecha automática al momento en que se creó la cuenta. |
 
-###  Carrera (`Carrera`)
+### Carrera (`Carreras`)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_carrera`  | INT | AUTO_INCREMENT | Identificador de la carrera. |
-| `nombre` | VARCHAR(150) | NOT NULL | Nombre oficial de la profesión. |
-| `descripcion` | TEXT | NOT NULL | Detalles generales del perfil profesional. |
-| `duracion` | VARCHAR(50) | NOT NULL | Tiempo estimado (ej: "5 años", "10 semestres").|
-| `modalidad` | VARCHAR(50) | NOT NULL | Formato de estudio (Presencial, Virtual, Híbrido).|
-| `habilidades_requeridas`| TEXT | NOT NULL | Competencias necesarias para la carrera. |
-| `areas_trabajo` | TEXT | NOT NULL | Campos o sectores de salida laboral. |
-| `salario_promedio`| DECIMAL(10,2)| NOT NULL | Ingreso estimado en el mercado local. |
+| `id_carrera` | INT | AUTO_INCREMENT | Es el identificador de la carrera. |
+| `nombre` | VARCHAR(150) | NOT NULL | Título oficial de la profesión. |
+| `descripcion` | TEXT |  | Descripción general del perfil profesional . |
+| `duracion` | VARCHAR(50) | NOT NULL | Periodo de tiempo previsto (por ejemplo: "10 semestres", "5 años", lo que el usuario ingrese ). |
+| `modalidad` | VARCHAR(50) | NOT NULL | Modalidad de estudio (virtual, presencial o híbrida).|
+| `habilidades_requeridas` | TEXTO | NOT NULL | Capacidades que se requieren para la carrera. |
+| `areas_trabajo` | TEXTO | NOT NULL | Campos o sectores de trabajo. |
+| `salario_promedio` | DECIMAL(10,2) | NOT NULL | Ingreso calculado en el mercado local. |
 
-### 🎭 Perfil Vocacional (`Perfil`)
+###  Perfil vocacional (`Perfiles`)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_perfil` 🔑 | INT | AUTO_INCREMENT | Identificador del tipo de perfil. |
-| `nombre` | VARCHAR(100) | NOT NULL | Categoría vocacional (ej: Tecnológico, Artístico).|
-| `descripcion` | TEXT | NOT NULL | Rasgos característicos de este tipo de perfil. |
+| `id_perfil`  | INT | AUTO_INCREMENT | Es el identifiacor que identifica la clase de perfil. |
+| `nombre` | VARCHAR(100) | NO NULO | Tipo de vocación (por ejemplo, artístico o tecnológico).|
+| `descripcion` | TEXT | NOT NULL | Características distintivas de este tipo de perfil. |
 
-### ❓ Pregunta (`Pregunta`)
+###  Pregunta (Preguntas)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_pregunta` 🔑 | INT | AUTO_INCREMENT | Identificador de la pregunta. |
-| `pregunta` | TEXT | NOT NULL | Enunciado evaluativo del test. |
+| `id_pregunta`  | INT | AUTO_INCREMENT | Código que identifica la pregunta. |
+| `pregunta` | TEXT | NOT NULL | Redacción evaluativa del examen. |
 
-### 🔘 Opcíon de Respuesta (`Opcion`)
+### Opción de respuesta (Opciones)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_opcion` 🔑 | INT | AUTO_INCREMENT | Identificador de la opción. |
-| `id_pregunta` 🔗 | INT | NOT NULL (FK) | Vinculación a la pregunta origen. |
-| `texto_opcion` | VARCHAR(255) | NOT NULL | Respuesta visible para el usuario. |
-| `puntaje` | INT | NOT NULL | Peso numérico asignado a la opción. |
+| `id_opcion` | INT | AUTO_INCREMENT | Es el identificador de la opción. |
+| `id_pregunta` | INT | NOT NULL (FK) | Se refiere a la pregunta original. |
+| `texto_opcion` | VARCHAR(255) | NOT NULL | Respuesta que puede ver el usuario. |
+| `puntaje` | INT | NOT NULL | Peso numérico que se le asigna a cada opción. |
 
-### 📝 Resultado del Test (`Resultado_Test`)
+### Resultado de la prueba ("Resultado del Test")
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_resultado` 🔑 | INT | AUTO_INCREMENT | Identificador del registro del resultado. |
-| `id_usuario` 🔗 | INT | NOT NULL (FK) | Usuario que ejecutó la prueba. |
-| `id_perfil` 🔗 | INT | NOT NULL (FK) | Perfil dominante obtenido. |
-| `porcentaje_afinidad`| DECIMAL(5,2)| NOT NULL | Nivel de coincidencia con el perfil (0-100%). |
-| `explicacion` | TEXT | NOT NULL | Feedback personalizado del resultado. |
-| `fecha` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Fecha de realización del test. |
+| `id_resultado` | INT | AUTO_INCREMENT | El identificador de la entrada del resultado. |
+| `id_usuario` | INT | NOT NULL (FK) | El usuario que realizó la prueba. |
+| `id_perfil` | INT | NO NULO (FK) | Perfil dominante que se ha adquirido. |
+| `porcentaje_afinidad`| DECIMAL(5,2) | NOT NULL | Mide el grado de coincidencia con el perfil (0-100%). |
+| `explicacion` | TEXTO | NOT NULL | Retroalimentación particularizada del resultado. |
+| `fecha` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Fecha en la que se llevó a cabo el examen (AUTOMATICA). |
 
-### 📥 Respuesta Guardada (`Respuesta_Usuario`)
+### Respuesta almacenada (`Respuesta de los Usuario`)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_respuesta` 🔑 | INT | AUTO_INCREMENT | Identificador único del registro de respuesta. |
-| `id_resultado` 🔗 | INT | NOT NULL (FK) | Test al que pertenece la respuesta. |
-| `id_pregunta` 🔗 | INT | NOT NULL (FK) | Pregunta respondida. |
-| `id_opcion` 🔗 | INT | NOT NULL (FK) | Opción seleccionada por el usuario. |
+| `id_respuesta` | INT | AUTO_INCREMENT | Clave única que identifica el registro de respuesta. |
+| `id_resultado` | INT | NOT NULL (FK) | El test al que la respuesta corresponde. |
+| `id_pregunta` | INT | NOT NULL (FK) | Pregunta que ha sido contestada. |
+| `id_opcion` | INT | NOT NULL (FK) | Opción que seleccionó el usuario. |
 
-### 💡 Recomendación (`Recomendacion`)
+### Sugerencia (`Recomendacion`)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_recomendacion` 🔑| INT | AUTO_INCREMENT | Identificador de la recomendación generada. |
-| `id_resultado` 🔗 | INT | NOT NULL (FK) | Test que dispara la recomendación. |
-| `id_carrera` 🔗 | INT | NOT NULL (FK) | Carrera sugerida al usuario. |
-| `porcentaje` | DECIMAL(5,2)| NOT NULL | Compatibilidad específica con la carrera. |
+| `id_recomendacion`  | INT | AUTO_INCREMENT | Número de identificación de la sugerencia producida. |
+| `id_resultado`  | INT | NOT NULL (FK) | Examen que activa la sugerencia. |
+| `id_carrera`  | INT | NOT NULL (FK) | Carrera recomendada para el usuario. |
+| `porcentaje` | DECIMAL(ejemplo: 5,2) | NOT NULL | Concordancia particular con la profesión. |
 
-### ⭐ Favorito (`Favorito`)
+### Preferido (`Favorito`)
 
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_favorito` 🔑 | INT | AUTO_INCREMENT | Identificador del marcador favorito. |
-| `id_usuario` 🔗 | INT | NOT NULL (FK) | Usuario que guarda la carrera. |
-| `id_carrera` 🔗 | INT | NOT NULL (FK) | Carrera guardada como favorita. |
+| `id_favorito`  | INT | AUTO_INCREMENT | Es el código que identifica al marcador favorito. |
+| `id_usuario`  | INT | NOT NULL (FK) | El usuario que almacena la carrera. |
+| `id_carrera`  | INT | NOT NULL (FK) | Carrera que se guarda como favorita. |
 
 ---
 
 ## 🔗 Diagrama de Relaciones e Integridad Referencial
 
-A continuación se detalla la lógica de vinculación entre componentes mediante llaves foráneas (`FOREIGN KEY`):
+A continuación se detalla la lógica de vinculación entre componentes mediante llaves foráneas, utilizando mermaid como inteligencia artificial ayudante para crear el diagrama (`FOREIGN KEY`):
 
 ```mermaid
 erDiagram
@@ -138,34 +138,33 @@ erDiagram
 
 ---
 
-## 📐 Normalización
+## Normalización
 
-El diseño lógico de la base de datos se ha desarrollado bajo los estándares de la **Tercera Forma Normal (3FN)**:
-1. **1FN (Primera Forma Normal):** Se eliminaron los grupos repetitivos; cada celda contiene únicamente valores atómicos independientes.
-2. **2FN (Segunda Forma Normal):** Se eliminaron las dependencias parciales. Todas las columnas que no forman parte de las llaves dependen funcionalmente de manera completa de sus respectivas llaves primarias.
-3. **3FN (Tercera Forma Normal):** Se eliminaron las dependencias transitivas. Las columnas no clave se definen estrictamente en función de la llave primaria y no a través de campos intermedios (ej: aislando opciones y preguntas en entidades desacopladas).
-
----
-
-## 💼 Reglas de Negocio Implementadas
-
-1. **Pruebas históricas:** Un usuario puede tomar el test múltiples veces para evaluar la evolución de sus intereses.
-2. **Resultados atómicos:** Cada intento o ejecución de un test genera un registro único y cerrado de resultados.
-3. **Recomendación múltiple:** Un solo resultado puede procesar y sugerir un listado dinámico de varias carreras profesionales simultáneamente.
-4. **Relación de Favoritos N:M:** Un usuario marca múltiples carreras favoritas, y una carrera puede pertenecer a las listas de favoritos de miles de usuarios (Resuelto mediante la tabla intermedia `Favorito`).
-5. **Consistencia de respuestas:** Las opciones del test están estrictamente ligadas a su pregunta matriz, controlando que el usuario solo guarde opciones válidas dentro del flujo.
-6. **Seguridad de accesos (RBAC):** Únicamente los usuarios autenticados con el valor `ADMIN` en la columna `rol` poseen privilegios de inserción, actualización o borrado en el catálogo de `Carrera` y de `Pregunta`.
+El diseño lógico de la base de datos se ha creado siguiendo los preceptos de la **Tercera Forma Normal (3FN)**:
+1. **1FN (Primera Forma Normal):** Se han suprimido los conjuntos repetidos; cada celda alberga solamente valores atómicos independientes.
+2. **2FN (Segunda Forma Normal):** Se suprimieron las dependencias parciales. Las columnas que no pertenecen a las llaves dependen funcionalmente de forma total de sus respectivas llaves primarias.
+3. **3FN (Tercera Forma Normal):** Las dependencias transitivas fueron eliminadas. Las columnas no clave se establecen específicamente en relación con la llave primaria, no por medio de campos intermedios (por ejemplo, separando preguntas y opciones en entidades desacopladas).
 
 ---
 
-## 🚀 Próximas Mejoras Tecnológicas
-* **Capa de Inteligencia Artificial:** Diseño de triggers y tablas vectoriales para integrar motores de recomendación basados en embeddings y modelos LLM.
-* **Módulo Analítico (OLAP):** Implementación de vistas indexadas y procedimientos almacenados para la generación ágil de dashboards administrativos y estadísticas globales.
-* **Sincronización Académica:** Ampliación del esquema para mapear convenios directos de admisión e ingresos con bases de datos de universidades externas.
+## Normas de negocio que se han puesto en marcha
+
+1. **Pruebas históricas:** Un usuario tiene la posibilidad de realizar el test en varias ocasiones para analizar cómo han cambiado sus intereses.
+2. **Resultados atómicos:** Cada vez que se realiza un test, se crea un registro cerrado y único de los resultados.
+3. **Recomendación múltiple:** Un solo resultado es capaz de procesar y proponer una lista dinámica de múltiples carreras profesionales al mismo tiempo.
+4. **Relación de favoritos N:M:** Un usuario puede marcar varias carreras como sus favoritas, mientras que una sola carrera puede estar en las listas de favoritos de miles de usuarios. (Esto se soluciona por medio de la tabla intermedia llamada `Favorito`.)
+5. **Consistencia de las respuestas:** Las alternativas del test están estrictamente vinculadas a su pregunta matriz, lo que garantiza que el usuario solo conserve opciones válidas en el flujo.
+6. **Seguridad de los accesos (RBAC):** Los usuarios que tienen el valor "ADMIN" en la columna "rol" son los únicos que cuentan con privilegios para actualizar, borrar o insertar datos en el catálogo de "Carrera" y "Pregunta".
 
 ---
 
-## 📝 Información del Proyecto
+##  Futuras Mejoras Tecnológicas que se podrian aplicar ( es opcional y situacional si se requiere )
+* **Capa de inteligencia artificial:** Diseño de tablas vectoriales y triggers para incorporar motores de recomendación fundamentados en modelos LLM y embeddings.
+* **Módulo analítico (OLAP):** Para crear estadísticas globales y dashboards administrativos de forma rápida, se utilizan procedimientos almacenados y vistas indexadas. ( permite analizar grandes volumenes de datos )
+* **Sincronización académica:** Extensión del esquema para enlazar convenios directos de admisión y entradas con bases de datos de universidades ajenas.
+---
+
+##  Información del Proyecto
 * **Versión del Esquema:** v1.0
 * **Entorno:** Producción / Desarrollo - Proyecto Integrador *CareerPath*
 * **Tipo:** Base de Datos Relacional (RDBMS) - MySQL 8.0
