@@ -1,48 +1,47 @@
 # 📊 CareerPathDB - Base de Datos
 
-## 📝 Descripción
-La base de datos **CareerPathDB** ha sido diseñada para almacenar y administrar toda la información necesaria para el funcionamiento de la plataforma *CareerPath*. Su propósito principal es gestionar usuarios, pruebas vocacionales, carreras profesionales, recomendaciones, historial de resultados y preferencias, garantizando la integridad, consistencia y escalabilidad de los datos.
+## Descripción
+La base de datos **CareerPathDB** fue creada para almacenar y gestionar toda la información requerida por la base de datos para el funcionamiento de *CareerPath*. Su objetivo principal es administrar usuarios, pruebas vocacionales, recomendaciones, historial de resultados y preferencias, así como carreras profesionales, asegurando la integridad, la consistencia y la escalabilidad de los datos.
+---
+
+##  Objetivos del Sistema
+* **Almacenar** Almacena información detallada de los usuarios registrados.
+* **Gestionar** Gestiona el banco de preguntas y las multiples opciones del test vocacional.
+* **Calcular** Calcula y persiste de forma exacta los resultados de las pruebas.
+* **Relacionar** Relaciones de perfiles vocacionales específicos con carreras profesionales compatibles con los usuarios.
+* **Registrar** Registra las recomendaciones personalizadas basadas en algoritmos de afinidad.
+* **Administrar** Administra el historial de actividad y las carreras favoritas de los usuarios.
 
 ---
 
-## 🎯 Objetivos del Sistema
-* **Almacenar** información detallada de los usuarios registrados.
-* **Gestionar** el banco de preguntas y opciones del test vocacional.
-* **Calcular** y persistir de forma exacta los resultados de las pruebas.
-* **Relacionar** perfiles vocacionales específicos con carreras profesionales compatibles.
-* **Registrar** recomendaciones personalizadas basadas en algoritmos de afinidad.
-* **Administrar** el historial de actividad y las carreras favoritas de los usuarios.
+##  Herramientas 
+
+* **Motor de base de datos:** Se emplea MySQL Server 8.0 (con funciones avanzadas de optimización e indexación).
+* **Modelado y administración:** MySQL Workbench (realización de consultas SQL y diseño EER).
+* **Desarrollo:** Visual Studio Code (redacción de scripts para la migración e inicialización).
+* **Control de versiones**: Git y GitHub (monitoreo de las modificaciones en los scripts .sql).
 
 ---
 
-## 🛠️ Stack Tecnológico y Herramientas
+##  Modelo Relacional (De la siguiente manera estara estructurada la base de datos)
 
-* **Motor de BD:** MySQL Server 8.0 (Características avanzadas de indexación y optimización).
-* **Modelado y Admin:** MySQL Workbench (Diseño EER y ejecución de consultas SQL).
-* **Desarrollo:** Visual Studio Code (Escritura de scripts de inicialización y migración).
-* **Control de Versiones:** Git & GitHub (Seguimiento de cambios en los scripts `.sql`).
+### Usuario (Usuario)
 
----
-
-## 📐 Modelo Relacional (Estructura de Datos)
-
-### 👤 Usuario (`Usuario`)
-
-| Campo | Tipo de Datos | Atributos | Descripción |
+| Campo | Tipo de datos | Características | Detalles |
 | :--- | :--- | :--- | :--- |
-| `id_usuario` 🔑 | INT | AUTO_INCREMENT | Identificador único del usuario. |
+| `id_usuario` | INT | AUTO_INCREMENT | Es el ID individual de los usuario. |
 | `nombre` | VARCHAR(100) | NOT NULL | Nombre(s) del usuario. |
 | `apellido` | VARCHAR(100) | NOT NULL | Apellido(s) del usuario. |
-| `correo` 🆔 | VARCHAR(150) | NOT NULL, UNIQUE | Correo electrónico de inicio de sesión. |
-| `contraseña` | VARCHAR(255) | NOT NULL | Hash de seguridad de la contraseña. |
-| `rol` | ENUM('USER', 'ADMIN')| NOT NULL | Rol para control de accesos. |
-| `fecha_registro`| DATETIME | DEFAULT CURRENT_TIMESTAMP | Fecha y hora de creación de la cuenta. |
+| `correo` | VARCHAR(150) | NOT NULL, ÚNICO | Correo electrónico para el inicio de sesión. |
+| `contraseña` | VARCHAR(255) | NO NULO | Manejo de  contraseñas. |
+| `rol` | ENUM('USER', 'ADMIN') | NOT NULL | Rol utilizado para el control de accesos de los usuarios . |
+| `fecha_registro` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Crea una fecha automática al momento en que se creó la cuenta. |
 
-### 🎓 Carrera (`Carrera`)
+###  Carrera (`Carrera`)
 
 | Campo | Tipo de Datos | Atributos | Descripción |
 | :--- | :--- | :--- | :--- |
-| `id_carrera` 🔑 | INT | AUTO_INCREMENT | Identificador de la carrera. |
+| `id_carrera`  | INT | AUTO_INCREMENT | Identificador de la carrera. |
 | `nombre` | VARCHAR(150) | NOT NULL | Nombre oficial de la profesión. |
 | `descripcion` | TEXT | NOT NULL | Detalles generales del perfil profesional. |
 | `duracion` | VARCHAR(50) | NOT NULL | Tiempo estimado (ej: "5 años", "10 semestres").|
