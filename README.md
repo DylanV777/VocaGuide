@@ -117,7 +117,7 @@ La base de datos **CareerPathDB** fue creada para almacenar y gestionar toda la 
 
 ---
 
-## 🔗 Diagrama de Relaciones e Integridad Referencial
+## Diagrama de Relaciones e Integridad Referencial
 
 A continuación se detalla la lógica de vinculación entre componentes mediante llaves foráneas, utilizando mermaid como inteligencia artificial ayudante para crear el diagrama (`FOREIGN KEY`):
 
@@ -193,6 +193,8 @@ erDiagram
         int id_carrera FK
     }
 ```
+<img width="788" height="608" alt="image" src="https://github.com/user-attachments/assets/3c40ca55-957a-41c7-9ce3-7ea31f7dad82" />
+
 
 ### Resumen de Mapeo de Restricciones
 * **`PRIMARY KEY`**: Aplicado en todos los campos con variable `id_*` de manera numérica indexada de tipo entero.
