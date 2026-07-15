@@ -123,16 +123,75 @@ A continuación se detalla la lógica de vinculación entre componentes mediante
 
 ```mermaid
 erDiagram
-    Usuario ||--o{ Resultado_Test : "realiza"
-    Usuario ||--o{ Favorito : "guarda"
-    Perfil ||--o{ Resultado_Test : "asigna"
-    Pregunta ||--o{ Opcion : "posee"
-    Resultado_Test ||--o{ Respuesta_Usuario : "contiene"
-    Pregunta ||--o{ Respuesta_Usuario : "evalúa"
-    Opcion ||--o{ Respuesta_Usuario : "selecciona"
-    Resultado_Test ||--o{ Recomendacion : "genera"
-    Carrera ||--o{ Recomendacion : "es_sugerida"
-    Carrera ||--o{ Favorito : "es_marcada"
+    USUARIO ||--o{ RESULTADO_TEST : takes
+    USUARIO ||--o{ FAVORITO : marks
+    PERFIL_VOCACIONAL ||--o{ RESULTADO_TEST : produces
+    RESULTADO_TEST ||--o{ RESPUESTA_USUARIO : contains
+    RESULTADO_TEST ||--o{ RECOMENDACION : generates
+    PREGUNTA ||--o{ OPCION : has
+    PREGUNTA ||--o{ RESPUESTA_USUARIO : answers
+    OPCION ||--o{ RESPUESTA_USUARIO : selects
+    CARRERA ||--o{ RECOMENDACION : recommended_in
+    CARRERA ||--o{ FAVORITO : added_to
+    USUARIO {
+        int id_usuario PK
+        string nombre
+        string apellido
+        string correo UK
+        string contrasena
+        enum rol
+        timestamp fecha_registro
+    }
+    CARRERA {
+        int id_carrera PK
+        string nombre
+        string descripcion
+        string duracion
+        string modalidad
+        string habilidades_requeridas
+        string areas_trabajo
+        decimal salario_promedio
+    }
+    PERFIL_VOCACIONAL {
+        int id_perfil PK
+        string nombre
+        string descripcion
+    }
+    PREGUNTA {
+        int id_pregunta PK
+        string pregunta
+    }
+    OPCION {
+        int id_opcion PK
+        int id_pregunta FK
+        string texto_opcion
+        int puntaje
+    }
+    RESULTADO_TEST {
+        int id_resultado PK
+        int id_usuario FK
+        int id_perfil FK
+        decimal porcentaje_afinidad
+        string explicacion
+        timestamp fecha
+    }
+    RESPUESTA_USUARIO {
+        int id_respuesta PK
+        int id_resultado FK
+        int id_pregunta FK
+        int id_opcion FK
+    }
+    RECOMENDACION {
+        int id_recomendacion PK
+        int id_resultado FK
+        int id_carrera FK
+        decimal porcentaje
+    }
+    FAVORITO {
+        int id_favorito PK
+        int id_usuario FK
+        int id_carrera FK
+    }
 ```
 
 ### Resumen de Mapeo de Restricciones
