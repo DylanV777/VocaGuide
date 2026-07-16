@@ -12,6 +12,7 @@ function renderRegisterView(container) {
         <button type="submit">Registrarme</button>
       </form>
       <p id="register-message" class="message"></p>
+      <p><a href="#" id="go-to-login">¿Ya tienes cuenta? Inicia sesión</a></p>
     </section>
   `;
 
@@ -35,5 +36,10 @@ function renderRegisterView(container) {
       messageEl.textContent = error.message;
       messageEl.className = "message message--error";
     }
+  });
+
+  container.querySelector("#go-to-login").addEventListener("click", (event) => {
+    event.preventDefault();
+    renderLoginView(container);
   });
 }

@@ -1,10 +1,16 @@
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-async function apiPost(path, body) {
+async function apiRequest(method, path, body) {
+  const token = localStorage.getItem("access_token");
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   const data = await response.json();
@@ -18,4 +24,12 @@ async function apiPost(path, body) {
   }
 
   return data;
+}
+
+function apiPost(path, body) {
+  return apiRequest("POST", path, body);
+}
+
+function apiGet(path) {
+  return apiRequest("GET", path);
 }

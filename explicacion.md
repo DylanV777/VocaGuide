@@ -100,3 +100,53 @@ python -m http.server 5500 --directory frontend
 ### Pendiente de verificación manual en navegador
 
 El formulario de registro (`frontend/js/views/register.js`) se probó sirviendo los archivos estáticos y confirmando que cargan correctamente (200 OK en HTML/CSS/JS), pero la interacción visual completa (llenar el formulario y ver el mensaje de éxito/error en el navegador) debe confirmarse abriendo `http://127.0.0.1:5500` manualmente, ya que este entorno de desarrollo no tiene un navegador gráfico disponible para automatizar esa verificación.
+
+---
+
+## HU-02 · Inicio de sesión — **Must**
+
+> *Como usuario registrado, quiero iniciar sesión para acceder a mi cuenta de forma segura.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| Autenticación con correo/contraseña y emisión de JWT | `POST /auth/login` (`routers/auth.py`) recibe `UserLogin` (email + password), busca el usuario por correo y compara la contraseña con `verify_password` (bcrypt). Si es válida, genera un JWT firmado con `create_access_token`. |
+| Rutas protegidas rechazan acceso sin token válido | Dependencia `get_current_user` (`dependencies.py`), que se inyecta con `Depends()` en cualquier endpoint que deba exigir sesión. Decodifica el JWT del header `Authorization: Bearer <token>`; si el token falta, es inválido o expiró, responde `401`. Se aplicó de entrada al nuevo endpoint `GET /auth/me`. |
+| El rol determina qué vistas puede consultar | El JWT incluye el claim `role` además de `sub` (email). Se creó la dependencia genérica `require_role(rol_requerido)` (`dependencies.py`), que reutiliza `get_current_user` y responde `403` si el rol del usuario autenticado no coincide. Esta dependencia queda lista para usarse en los endpoints de administración de la Fase 5 (HU-08); por ahora se validó con tests automatizados (ver abajo) porque todavía no existe ningún endpoint exclusivo de administrador en el alcance actual. |
+
+### Decisiones técnicas
+
+- **PyJWT en vez de `python-jose`**: `python-jose` es la librería que más aparece en tutoriales de FastAPI, pero tiene historial de vulnerabilidades sin mantenimiento activo tan constante. `PyJWT` es más simple, activamente mantenida, y es todo lo que se necesita para firmar/verificar con HS256.
+- **Firma simétrica (HS256) en vez de asimétrica (RS256)**: el mismo servicio (FastAPI) es el único que emite y valida tokens; no hay otro servicio externo que necesite verificar la firma con una clave pública separada. RS256 solo aportaría complejidad adicional sin beneficio real aquí.
+- **Login recibe JSON (`UserLogin`), no el formulario OAuth2 estándar (`OAuth2PasswordRequestForm`)**: FastAPI/Swagger suelen documentarse con el flujo de formulario `username`/`password` porque así funciona el botón "Authorize" de `/docs` out-of-the-box. Se prefirió mantener el endpoint de login consistente con el resto de la API (JSON, igual que `/auth/register`), ya que el frontend es una SPA que solo habla JSON vía `fetch`. La contrapartida es que el candado de Swagger UI no autentica automáticamente, pero cada endpoint se puede seguir probando individualmente desde `/docs` con "Try it out".
+- **Mensaje de error genérico en login** ("Credenciales inválidas") tanto si el correo no existe como si la contraseña es incorrecta: evita que un atacante pueda usar el endpoint de login para enumerar qué correos están registrados.
+- **Token expira en 60 minutos** (`ACCESS_TOKEN_EXPIRE_MINUTES` en `config.py`): tiempo suficiente para una sesión de uso normal del test vocacional sin dejar tokens válidos indefinidamente. No se implementó refresh token porque el alcance del proyecto no lo requiere (no hay historia de usuario que lo pida).
+- **`JWT_SECRET_KEY` generado con `secrets.token_hex(32)`** y guardado solo en `.env` (ignorado por git), nunca hardcodeado en el código ni en `.env.example` (que solo trae un placeholder).
+- **`GET /auth/me` como endpoint protegido de prueba**: no corresponde a ninguna historia de usuario por sí solo, pero es el mecanismo estándar para que el frontend confirme quién es el usuario autenticado y qué rol tiene justo después del login (se usa en `login.js` para mostrar "Sesión iniciada como X (rol: Y)"), y sirve como la ruta protegida sobre la que se valida el criterio de aceptación de HU-02.
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_auth.py`, con `pytest`):
+1. Un token creado con `create_access_token` se decodifica correctamente y conserva `sub` y `role`.
+2. `decode_access_token` rechaza un token con formato inválido.
+3. `get_current_user` responde `401` ante un token inválido (sin necesidad de tocar la base de datos, ya que la validación del token ocurre antes).
+4. `require_role("admin")` permite el paso a un usuario con rol `admin`.
+5. `require_role("admin")` rechaza con `403` a un usuario con rol `usuario`.
+
+Se optó por probar `require_role` con un test unitario en vez de crear un endpoint de administración ficticio solo para probarlo, ya que ese endpoint no corresponde a ninguna historia de usuario del alcance actual (llegará en la Fase 5, HU-08) y habría sido código sin propósito real.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl):
+1. Login con credenciales correctas → `200` con `access_token` JWT.
+2. Login con contraseña incorrecta → `401` "Credenciales inválidas".
+3. `GET /auth/me` sin header `Authorization` → `401`.
+4. `GET /auth/me` con un token inválido/falso → `401`.
+5. `GET /auth/me` con el token válido obtenido en el login → `200` con los datos del usuario (id, email, rol, fecha de creación).
+
+### Frontend
+
+Se agregó `frontend/js/views/login.js`: formulario de correo/contraseña que llama a `/auth/login`, guarda el `access_token` en `localStorage`, y luego llama a `/auth/me` para mostrar confirmación de sesión con el rol del usuario. `api.js` se extendió con `apiGet` y un `apiRequest` genérico que adjunta automáticamente el header `Authorization: Bearer <token>` cuando hay un token guardado. Las vistas de registro y login ahora se enlazan entre sí (registro → login y viceversa) mediante un enlace simple, sin necesidad de un router de SPA completo (no hay aún más de dos vistas).
+
+### Pendiente de verificación manual en navegador
+
+Igual que con HU-01: se confirmó que `login.js` se sirve correctamente (200 OK) y la lógica se probó de extremo a extremo por API, pero la interacción visual (formulario de login, navegación entre vistas, mensaje de bienvenida con el rol) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real.
