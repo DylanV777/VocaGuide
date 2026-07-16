@@ -1,4 +1,6 @@
 import "./register.css";
+import { register } from "../../services/authService.js";
+import { navigate } from "../../utils/navegations.js";
 
 export function Register() {
     return `
@@ -64,6 +66,7 @@ export function Register() {
                             placeholder="********"
                             required
                         >
+                        <p id="passwordError" class="error-message"></p>
                     </div>
 
                     <button class="btn-login" type="submit">
@@ -89,30 +92,67 @@ export function registerEvents() {
 
     if (form) {
 
-    form.addEventListener("submit",(event)=>{
+        form.addEventListener("submit", async (event) => {
 
-        event.preventDefault();
+            event.preventDefault();
 
-        console.log("Registro enviado");
+            const name = document.getElementById("name").value.trim();
 
-    });
+            const email = document.getElementById("email").value.trim();
+
+            const password = document.getElementById("password").value.trim();
+
+            const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+            const passwordError = document.getElementById("passwordError");
+
+                passwordError.textContent = "";
+
+                if (password !== confirmPassword) {
+
+                    passwordError.textContent = "The passwords don't match.";
+
+                    return;
+
+                }
+            
+
+            const user = {
+
+                name,
+                email,
+                password
+
+            };
+
+            const response = await register(user);
+
+                if (response.success) {
+
+                    form.reset();
+
+                }
+                else {
+
+                    passwordError.textContent = response.message;}
+
+            console.log(response);
+        });
 
     }
 
     const goLogin = document.getElementById("goLogin");
 
-    if(goLogin){
+        if (goLogin) {
 
-        goLogin.addEventListener("click",(event)=>{
+            goLogin.addEventListener("click", (event) => {
 
-            event.preventDefault();
+                event.preventDefault();
 
-            history.pushState({}, "", "/login");
+                navigate("/login");
 
-            window.dispatchEvent(new PopStateEvent("popstate"));
+            });
 
-    });
-
-}
+        }
 
 }
