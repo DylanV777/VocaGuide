@@ -93,3 +93,15 @@
 .register-link a:hover {
     text-decoration: underline;
 }
+
+#loginError, #passwordError {
+
+    color:rgb(247, 80, 80);
+
+    font-size:.7rem;
+
+    margin-top:.4rem;
+
+    min-height:20px;
+
+}

@@ -1,5 +1,6 @@
 import './login.css';
 import { login } from "../../services/authService.js";
+import { navigate } from "../../utils/navegations.js";
 export function Login() {
     return `
         <section class="login-container">
@@ -43,6 +44,7 @@ export function Login() {
                     <button type="submit" class="btn-login">
                         Sign in
                     </button>
+                    <p id="loginError" class="error-message"></p>
 
                 </form>
 
@@ -73,7 +75,17 @@ export function loginEvents() {
 
             const response = await login(email, password);
 
-            console.log(response);
+            if (!response.success) {
+
+                const loginError = document.getElementById("loginError");
+
+                loginError.textContent =
+                "Error in logging in. Please check your credentials and try again.";
+
+                form.reset();
+
+    return;
+}
 
         });
 
@@ -87,9 +99,7 @@ export function loginEvents() {
 
             event.preventDefault();
 
-            history.pushState({}, "", "/register");
-
-            window.dispatchEvent(new PopStateEvent("popstate"));
+            navigate("/register");
 
         });
 
