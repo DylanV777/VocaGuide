@@ -1,6 +1,6 @@
 import pytest
 
-from app.routers.test import calculate_profile, validate_submission
+from app.routers.test import calculate_profile, select_recommended_careers, validate_submission
 from app.schemas import AnswerIn
 
 
@@ -50,3 +50,16 @@ def test_calculate_profile_breaks_ties_with_the_lowest_profile_id():
     answers = make_answers({1: 3, 2: 3, 3: 3, 4: 3})  # empate: 6 puntos cada perfil
 
     assert calculate_profile(answers, QUESTION_PROFILE_MAP) == 10
+
+
+def test_select_recommended_careers_returns_exactly_three():
+    careers = ["Carrera A", "Carrera B", "Carrera C", "Carrera D"]
+
+    assert select_recommended_careers(careers) == ["Carrera A", "Carrera B", "Carrera C"]
+
+
+def test_select_recommended_careers_raises_when_profile_has_too_few_careers():
+    careers = ["Carrera A", "Carrera B"]
+
+    with pytest.raises(ValueError, match="no tiene suficientes carreras"):
+        select_recommended_careers(careers)

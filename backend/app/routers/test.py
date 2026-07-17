@@ -3,10 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import Answer, Question, Result, TestAttempt, User, VocationalProfile
+from app.models import Answer, Career, Question, Result, TestAttempt, User, VocationalProfile
 from app.schemas import AnswerIn, QuestionOut, TestSubmitIn, TestSubmitOut
 
 router = APIRouter(prefix="/test", tags=["test"])
+
+RECOMMENDED_CAREERS_COUNT = 3
 
 
 def validate_submission(submitted_question_ids: list[int], valid_question_ids: set[int]) -> None:
@@ -29,6 +31,19 @@ def calculate_profile(answers: list[AnswerIn], question_profile_map: dict[int, i
     max_score = max(scores.values())
     winning_profile_ids = sorted(profile_id for profile_id, score in scores.items() if score == max_score)
     return winning_profile_ids[0]
+
+
+def select_recommended_careers(profile_careers: list, limit: int = RECOMMENDED_CAREERS_COUNT) -> list:
+    """Toma las carreras asociadas al perfil ganador (ya ordenadas) y devuelve
+    exactamente `limit`. Lanza un error si no hay suficientes carreras cargadas
+    para ese perfil, ya que eso significaría datos semilla incompletos, no una
+    situación esperable en operación normal."""
+    if len(profile_careers) < limit:
+        raise ValueError(
+            f"El perfil no tiene suficientes carreras registradas para recomendar "
+            f"{limit} (tiene {len(profile_careers)})"
+        )
+    return profile_careers[:limit]
 
 
 @router.get("/questions", response_model=list[QuestionOut])
@@ -65,6 +80,17 @@ def submit_test(
     db.flush()
 
     profile = db.get(VocationalProfile, winning_profile_id)
+
+    profile_careers = (
+        db.query(Career).filter(Career.profile_id == winning_profile_id).order_by(Career.id).all()
+    )
+    recommended_careers = select_recommended_careers(profile_careers)
+
     db.commit()
 
-    return TestSubmitOut(attempt_id=attempt.id, result_id=result.id, profile=profile)
+    return TestSubmitOut(
+        attempt_id=attempt.id,
+        result_id=result.id,
+        profile=profile,
+        recommended_careers=recommended_careers,
+    )

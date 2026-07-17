@@ -64,8 +64,17 @@ class VocationalProfileOut(BaseModel):
     description: str
 
 
+class CareerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str
+
+
 class TestSubmitOut(BaseModel):
     attempt_id: int
     result_id: int
     profile: VocationalProfileOut
-    message: str = "Test completado. Este es tu perfil vocacional."
+    recommended_careers: list[CareerOut]
+    message: str = "Test completado. Este es tu perfil vocacional y tus carreras recomendadas."

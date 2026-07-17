@@ -233,8 +233,50 @@ La navegación entre preguntas, el estado deshabilitado del botón y el mensaje 
 
 ### Frontend
 
-Se agregó `frontend/js/views/results.js`: una tarjeta simple que muestra el nombre del perfil vocacional y su descripción, recibidos directamente en la respuesta de `POST /test/submit` (sin necesidad de una llamada adicional a la API). Se modificó el manejador de envío en `test.js` para renderizar esta vista en lugar del mensaje genérico anterior. No se agregó todavía ninguna sección de carreras recomendadas en esta pantalla: eso corresponde a HU-05, que aún no está implementada.
+Se agregó `frontend/js/views/results.js`: una tarjeta simple que muestra el nombre del perfil vocacional y su descripción, recibidos directamente en la respuesta de `POST /test/submit` (sin necesidad de una llamada adicional a la API). Se modificó el manejador de envío en `test.js` para renderizar esta vista en lugar del mensaje genérico anterior. En ese momento no se agregó ninguna sección de carreras recomendadas en esta pantalla; esa parte se completó en HU-05 (ver más abajo).
 
 ### Pendiente de verificación manual en navegador
 
 Se confirmó que `results.js` se sirve correctamente y que el flujo completo (login → test → envío → cálculo → resultado) funciona de extremo a extremo contra la API real, pero la vista final (tarjeta con el perfil, estilos aplicados) debe confirmarse visualmente abriendo `http://127.0.0.1:5500` en un navegador real.
+
+---
+
+## HU-05 · Recibir recomendación de carreras — **Must**
+
+> *Como usuario con un perfil calculado, quiero recibir 3 carreras recomendadas para orientar mi decisión.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El sistema recomienda exactamente 3 carreras coherentes con el perfil obtenido | Nueva tabla `careers`, cada una asociada a un único `profile_id`. Tras calcular el perfil ganador en `POST /test/submit`, se consultan las carreras de ese perfil (ordenadas por `id`) y `select_recommended_careers()` toma las primeras 3. |
+| Cada carrera recomendada muestra un nombre y una breve descripción | Esquema `CareerOut` expone `id`, `name`, `description`. |
+| La recomendación se muestra junto con el resultado del test | La respuesta de `POST /test/submit` ahora incluye `recommended_careers` junto con `profile`, y `frontend/js/views/results.js` las pinta en la misma pantalla, debajo del perfil. |
+
+### Modelo de datos y decisiones
+
+- **`Career.profile_id` como relación muchos-a-uno** (cada carrera pertenece a un único perfil), igual que `Question.profile_id`: mantiene el modelo simple y coherente con el resto del esquema. No se modeló una relación muchos-a-muchos (una carrera podría en teoría encajar con más de un perfil) porque el alcance del proyecto no lo pide y hubiera sido complejidad especulativa (YAGNI).
+- **20 carreras semilla, 4 por cada uno de los 5 perfiles**, cargadas en una migración de datos separada (`74f8e78b7b31_seed_careers.py`), siguiendo el mismo patrón ya usado para las preguntas en HU-03 (una migración crea la tabla, otra separada carga los datos de referencia).
+- **4 carreras por perfil en vez de exactamente 3**: deja un colchón de datos. Si en el futuro (Fase 5, HU-08) un administrador edita o elimina una carrera del catálogo, el perfil no se queda con menos de 3 y la recomendación no se rompe.
+- **`select_recommended_careers()` valida que haya al menos 3 carreras disponibles y lanza un error si no las hay**, en vez de devolver silenciosamente menos de 3 o fallar de forma confusa más adelante. Esto no es una validación de entrada del usuario (el usuario no controla cuántas carreras tiene un perfil): es una verificación de integridad de los datos semilla/administrados, pensada para fallar ruidosamente si en el futuro alguien deja un perfil con menos de 3 carreras, en lugar de mostrar una recomendación incompleta sin que nadie se dé cuenta.
+- **La recomendación se calculó dentro de `POST /test/submit`**, no en un endpoint aparte, por la misma razón documentada en HU-04: para el usuario, terminar el test y ver perfil + carreras recomendadas es una sola acción.
+- **No se construyó todavía el catálogo completo de carreras** (listar/consultar todas, con detalle individual): eso es HU-06, Fase 4. Aquí las carreras solo se exponen como parte de la recomendación de un resultado, no hay endpoint para listarlas todas.
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_test_submission.py`, con `pytest`), sobre la función pura `select_recommended_careers()`:
+1. Con una lista de 4 carreras, devuelve exactamente las primeras 3.
+2. Con una lista de menos de 3 carreras, lanza un error explícito en vez de devolver una recomendación incompleta.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl), usando el usuario de prueba `jairo@example.com`:
+1. Envío del test sesgado hacia el perfil `SOCIAL` (preguntas 3, 8, 13, 18 con valor 5) → el backend devolvió el perfil `SOCIAL` junto con exactamente 3 carreras: Psicología, Trabajo Social y Licenciatura en Educación — las tres correspondientes a ese perfil.
+2. Verificación en base de datos de que los 5 perfiles tienen 4 carreras cargadas cada uno (nunca menos de las 3 requeridas).
+3. Se verificó que los caracteres especiales (tildes, eñes) se guardan y se transmiten correctamente en UTF-8 tanto en la base de datos como en la respuesta cruda de la API; una salida con codificación rara (`Ã±` en vez de `ñ`) resultó ser un artefacto de cómo una herramienta de terminal reprocesaba el JSON, no un problema real de datos.
+
+### Frontend
+
+Se actualizó `frontend/js/views/results.js` para recibir también `recommended_careers` de la respuesta de `POST /test/submit` y mostrarlas como una lista de tarjetas (nombre + descripción) debajo del perfil vocacional, en la misma pantalla de resultados construida en HU-04.
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó que la nueva versión de `results.js` se sirve correctamente y que la API responde con perfil + 3 carreras coherentes en cada prueba manual, pero la vista final (tarjetas de carreras con sus estilos) debe confirmarse visualmente abriendo `http://127.0.0.1:5500` en un navegador real.
