@@ -56,6 +56,16 @@ class TestSubmitIn(BaseModel):
     answers: list[AnswerIn]
 
 
+class VocationalProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    name: str
+    description: str
+
+
 class TestSubmitOut(BaseModel):
     attempt_id: int
-    message: str = "Respuestas registradas correctamente"
+    result_id: int
+    profile: VocationalProfileOut
+    message: str = "Test completado. Este es tu perfil vocacional."

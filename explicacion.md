@@ -198,3 +198,43 @@ Se agregó `frontend/js/views/test.js`: pantalla que muestra una pregunta a la v
 ### Pendiente de verificación manual en navegador
 
 La navegación entre preguntas, el estado deshabilitado del botón y el mensaje final de envío se probaron confirmando que los archivos se sirven correctamente y que la API responde como se espera en cada paso, pero la experiencia interactiva completa (clics reales, navegación entre pantallas) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, ya que este entorno no cuenta con uno disponible para automatizar esa verificación.
+
+---
+
+## HU-04 · Obtener el perfil vocacional — **Must**
+
+> *Como usuario que completó el test, quiero ver mi perfil vocacional calculado para entender mis resultados.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El backend calcula el perfil a partir de las respuestas según las reglas definidas | Función pura `calculate_profile()` (`routers/test.py`): suma el valor de cada respuesta al perfil de su pregunta (usando `Question.profile_id`) y devuelve el perfil con mayor puntaje total. |
+| El resultado se guarda asociado al usuario | Nueva tabla `results` (modelo `Result`): `user_id`, `attempt_id` (único, un resultado por intento), `profile_id`, `created_at`. Se crea en la misma transacción que el intento y las respuestas dentro de `POST /test/submit`. |
+| La pantalla de resultados muestra el perfil obtenido de forma clara | `frontend/js/views/results.js` (nueva vista `FRONT-02`): muestra el nombre y la descripción del perfil calculado en una tarjeta dedicada, reemplazando el mensaje genérico de "test enviado" que tenía la pantalla del test. |
+
+### Decisiones técnicas
+
+- **El cálculo se integró dentro de `POST /test/submit` en vez de crear un endpoint separado** (por ejemplo `POST /test/{attempt_id}/calculate`): para el usuario, terminar el test y ver su resultado es una sola acción; partirla en dos llamadas HTTP solo agregaría una petición de red sin ningún beneficio real, ya que el frontend siempre calcula el resultado inmediatamente después de enviar las respuestas. La separación entre "respuestas crudas" (`answers`) y "resultado calculado" (`results`) que se documentó en HU-03 se mantiene a nivel de **modelo de datos** (dos tablas con propósitos distintos), no a nivel de API.
+- **Regla de desempate determinista**: si dos o más perfiles empatan en puntaje, gana el de menor `profile_id`. Es una regla simple y arbitraria (no hay ningún criterio de negocio definido por el proyecto que priorice un perfil sobre otro), pero es importante que sea **determinista**: mismas respuestas siempre deben dar el mismo resultado. Queda documentado como una simplificación consciente, no como una regla vocacional fundamentada; se puede refinar más adelante si se define un criterio de desempate más significativo (por ejemplo, el perfil de la pregunta respondida con mayor convicción).
+- **`Result.attempt_id` es `UNIQUE`**: un intento (`TestAttempt`) solo puede tener un resultado calculado, reforzando a nivel de base de datos que el cálculo es 1 a 1 con el envío, y no algo que se recalcule o duplique.
+- **La respuesta de `POST /test/submit` ahora incluye el perfil completo** (`code`, `name`, `description`) en vez de solo un `attempt_id`, para que el frontend pueda pintar la pantalla de resultados sin una segunda llamada a la API.
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_test_submission.py`, ampliado con `pytest`), sobre la función pura `calculate_profile()` con un mapa sintético de preguntas/perfiles (independiente de los datos semilla reales, mismo patrón que las pruebas de HU-03):
+1. Con puntajes claramente distintos entre dos perfiles, gana el de mayor puntaje total.
+2. Con puntajes empatados entre dos perfiles, gana el de menor `profile_id` (regla de desempate documentada arriba).
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl), usando el usuario de prueba `jairo@example.com`:
+1. Envío del test respondiendo con valores altos (5) solo en las 4 preguntas del perfil `ANALITICO` y bajos (1) en el resto → el backend calculó y devolvió `ANALITICO` correctamente.
+2. Envío de otro intento respondiendo alto solo en las preguntas del perfil `TECNICO` → el backend calculó y devolvió `TECNICO`, confirmando que el cálculo responde a las respuestas reales y no está fijo a un valor.
+3. Verificación directa en la tabla `results` vía `psql`: ambos resultados quedaron guardados con el `user_id` y `profile_id` correctos, cada uno asociado a su `attempt_id`.
+
+### Frontend
+
+Se agregó `frontend/js/views/results.js`: una tarjeta simple que muestra el nombre del perfil vocacional y su descripción, recibidos directamente en la respuesta de `POST /test/submit` (sin necesidad de una llamada adicional a la API). Se modificó el manejador de envío en `test.js` para renderizar esta vista en lugar del mensaje genérico anterior. No se agregó todavía ninguna sección de carreras recomendadas en esta pantalla: eso corresponde a HU-05, que aún no está implementada.
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó que `results.js` se sirve correctamente y que el flujo completo (login → test → envío → cálculo → resultado) funciona de extremo a extremo contra la API real, pero la vista final (tarjeta con el perfil, estilos aplicados) debe confirmarse visualmente abriendo `http://127.0.0.1:5500` en un navegador real.

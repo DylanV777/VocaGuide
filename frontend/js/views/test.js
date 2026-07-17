@@ -83,12 +83,7 @@ async function renderTestView(container) {
           })),
         };
         const result = await apiPost("/test/submit", payload);
-        container.innerHTML = `
-          <section class="test-card">
-            <h1>¡Test enviado!</h1>
-            <p>Tus respuestas fueron registradas correctamente (intento #${result.attempt_id}).</p>
-          </section>
-        `;
+        renderResultsView(container, result);
       } catch (error) {
         messageEl.textContent = error.message;
         messageEl.className = "message message--error";

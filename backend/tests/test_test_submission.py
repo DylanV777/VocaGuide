@@ -1,9 +1,18 @@
 import pytest
 
-from app.routers.test import validate_submission
+from app.routers.test import calculate_profile, validate_submission
+from app.schemas import AnswerIn
 
 
 VALID_IDS = set(range(1, 21))
+
+# Mapa sintético de 4 preguntas repartidas en 2 perfiles (10 y 20), independiente
+# de los datos semilla reales, para probar calculate_profile de forma aislada.
+QUESTION_PROFILE_MAP = {1: 10, 2: 10, 3: 20, 4: 20}
+
+
+def make_answers(values: dict[int, int]) -> list[AnswerIn]:
+    return [AnswerIn(question_id=question_id, value=value) for question_id, value in values.items()]
 
 
 def test_validate_submission_accepts_exactly_the_valid_question_ids():
@@ -29,3 +38,15 @@ def test_validate_submission_rejects_duplicate_questions():
 
     with pytest.raises(ValueError, match="repetidas"):
         validate_submission(with_duplicate, VALID_IDS)
+
+
+def test_calculate_profile_picks_the_profile_with_the_highest_total_score():
+    answers = make_answers({1: 5, 2: 5, 3: 1, 4: 1})  # perfil 10: 10 puntos, perfil 20: 2 puntos
+
+    assert calculate_profile(answers, QUESTION_PROFILE_MAP) == 10
+
+
+def test_calculate_profile_breaks_ties_with_the_lowest_profile_id():
+    answers = make_answers({1: 3, 2: 3, 3: 3, 4: 3})  # empate: 6 puntos cada perfil
+
+    assert calculate_profile(answers, QUESTION_PROFILE_MAP) == 10

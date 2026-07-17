@@ -114,3 +114,31 @@ body {
   background: #c7d2e0;
   cursor: not-allowed;
 }
+
+.results-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
+
+.results-label {
+  color: #57606a;
+  font-size: 0.85rem;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.results-card h1 {
+  color: #2f6feb;
+  margin: 0 0 1rem;
+}
+
+.results-description {
+  color: #24292f;
+  line-height: 1.5;
+}

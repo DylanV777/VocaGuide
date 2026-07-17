@@ -54,3 +54,13 @@ class Answer(Base):
     attempt_id: Mapped[int] = mapped_column(ForeignKey("test_attempts.id"), nullable=False)
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"), nullable=False)
     value: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class Result(Base):
+    __tablename__ = "results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("test_attempts.id"), unique=True, nullable=False)
+    profile_id: Mapped[int] = mapped_column(ForeignKey("vocational_profiles.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
