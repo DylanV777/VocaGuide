@@ -55,3 +55,62 @@ body {
 .message--error {
   color: #cf222e;
 }
+
+.test-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 480px;
+}
+
+.test-progress {
+  color: #57606a;
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.likert {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.likert-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.likert-option:has(input:checked) {
+  border-color: #2f6feb;
+  background: #eef4ff;
+}
+
+.test-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.test-nav button {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 4px;
+  background: #2f6feb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.test-nav button:disabled {
+  background: #c7d2e0;
+  cursor: not-allowed;
+}

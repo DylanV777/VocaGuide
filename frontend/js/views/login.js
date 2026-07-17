@@ -30,10 +30,7 @@ function renderLoginView(container) {
     try {
       const { access_token } = await apiPost("/auth/login", { email, password });
       localStorage.setItem("access_token", access_token);
-
-      const me = await apiGet("/auth/me");
-      messageEl.textContent = `Sesión iniciada como ${me.email} (rol: ${me.role})`;
-      messageEl.className = "message message--success";
+      renderTestView(container);
     } catch (error) {
       messageEl.textContent = error.message;
       messageEl.className = "message message--error";

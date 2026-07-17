@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserCreate(BaseModel):
@@ -37,3 +37,25 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class QuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order: int
+    text: str
+
+
+class AnswerIn(BaseModel):
+    question_id: int
+    value: int = Field(ge=1, le=5)
+
+
+class TestSubmitIn(BaseModel):
+    answers: list[AnswerIn]
+
+
+class TestSubmitOut(BaseModel):
+    attempt_id: int
+    message: str = "Respuestas registradas correctamente"

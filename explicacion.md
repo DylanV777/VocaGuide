@@ -150,3 +150,51 @@ Se agregó `frontend/js/views/login.js`: formulario de correo/contraseña que ll
 ### Pendiente de verificación manual en navegador
 
 Igual que con HU-01: se confirmó que `login.js` se sirve correctamente (200 OK) y la lógica se probó de extremo a extremo por API, pero la interacción visual (formulario de login, navegación entre vistas, mensaje de bienvenida con el rol) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real.
+
+---
+
+## HU-03 · Realizar el test vocacional — **Must**
+
+> *Como usuario autenticado, quiero responder un test de 20 preguntas para conocer mi perfil vocacional.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El test presenta las 20 preguntas en orden y permite responderlas todas | `GET /test/questions` (`routers/test.py`), protegido con `get_current_user`, devuelve las preguntas ordenadas por la columna `order`. El frontend (`js/views/test.js`) las muestra de a una, con navegación "Anterior"/"Siguiente" y un indicador "Pregunta X de 20". |
+| No se puede enviar el test si quedan preguntas sin responder | Doble validación: en el frontend, el botón "Siguiente"/"Enviar" permanece deshabilitado hasta que la pregunta actual tiene una opción marcada, y solo se llega al botón "Enviar" tras recorrer las 20. En el backend, `validate_submission()` (`routers/test.py`) rechaza con `400` cualquier envío cuyo conjunto de `question_id` no sea exactamente igual al conjunto completo de preguntas existentes — así el backend no depende únicamente de que el frontend se comporte bien. |
+| Las respuestas se envían al backend en un único envío estructurado | `POST /test/submit` recibe `TestSubmitIn { answers: [{question_id, value}, ...] }` en un solo request y persiste todo en una sola transacción (`TestAttempt` + 20 filas de `Answer`). |
+
+### Modelo de datos y decisiones
+
+- **Cuatro tablas nuevas**: `vocational_profiles`, `questions`, `test_attempts`, `answers`. Se separó **intento** (`test_attempts`, quién y cuándo) de **respuestas crudas** (`answers`, qué contestó en cada pregunta) porque el cálculo del perfil vocacional (HU-04, Fase 3) todavía no existe: HU-03 solo debe *recolectar y persistir* las respuestas, no interpretarlas. Cuando se construya HU-04, leerá estas filas de `answers` para calcular el perfil y creará un registro de resultado aparte — evita mezclar "lo que el usuario respondió" con "lo que el sistema concluyó", que son cosas distintas y con ciclos de vida distintos.
+- **5 perfiles vocacionales, 4 preguntas cada uno** (Analítico-Científico, Creativo-Artístico, Social-Comunicativo, Técnico-Práctico, Organizacional-Administrativo) para llegar exactamente a 20 preguntas con una distribución pareja. Cada pregunta es una afirmación calificada en escala Likert de 1 a 5 ("Muy en desacuerdo" a "Muy de acuerdo"), y pertenece a un único perfil (`questions.profile_id`). Esta es la definición de "perfiles vocacionales y reglas de cálculo" (TEST-01); la regla de cálculo en sí (sumar puntajes por perfil y quedarse con el más alto) se implementará en HU-04.
+- **El orden de presentación intercala los perfiles** (perfil 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, ...) en vez de agrupar las 4 preguntas de cada perfil consecutivamente. Así, dos preguntas seguidas nunca miden lo mismo, lo que reduce que el usuario note el patrón y responda de forma sesgada para "forzar" un resultado.
+- **`GET /test/questions` nunca expone `profile_id`** en la respuesta (`QuestionOut` solo trae `id`, `order`, `text`). Por el mismo motivo: si el frontend supiera qué perfil mide cada pregunta, sería trivial manipular el resultado.
+- **Datos semilla como migración de Alembic separada** (`cd11d45b33a2_seed_vocational_profiles_and_questions.py`), distinta de la migración que crea las tablas (`c74771156e62_create_vocational_test_tables.py`). Mantiene el principio de una migración = un cambio: una crea estructura, la otra carga datos de referencia fijos. Cualquiera que clone el proyecto y corra `alembic upgrade head` obtiene las 20 preguntas listas, sin pasos manuales adicionales.
+- **Restricción `CHECK (value BETWEEN 1 AND 5)` a nivel de base de datos** en `answers`, además de la validación `Field(ge=1, le=5)` en Pydantic: doble capa de seguridad para que un valor fuera de rango no pueda llegar a la base de datos aunque se inserte por fuera de la API.
+- **No hay endpoint explícito para "enviar respuestas" en el backlog técnico original** (Fase 2 solo listaba `TEST-03 Endpoint de preguntas`), pero el tercer criterio de aceptación de HU-03 exige un envío estructurado al backend. Se agregó `POST /test/submit` como tarea implícita de esta historia (documentado aquí porque no tiene código de backlog propio), separado de `RES-01`/`RES-02` (Fase 3), que se encargarán de leer estas respuestas para calcular y guardar el resultado.
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_test_submission.py`, con `pytest`), sobre la función pura `validate_submission()` (sin necesidad de base de datos, mismo patrón usado en HU-02 para `require_role`):
+1. Acepta un envío con exactamente las 20 preguntas válidas.
+2. Rechaza un envío al que le falta una pregunta.
+3. Rechaza un envío con un `question_id` que no existe.
+4. Rechaza un envío con una pregunta repetida.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl):
+1. `GET /test/questions` sin token → `401`.
+2. `GET /test/questions` con token válido → `200` con las 20 preguntas ordenadas, sin `profile_id`.
+3. `POST /test/submit` con las 20 respuestas completas → `201`, se crea 1 fila en `test_attempts` y 20 en `answers` (verificado directamente con `psql`).
+4. `POST /test/submit` con 19 respuestas (falta una) → `400` "Debes responder exactamente las 20 preguntas del test, sin omitir ninguna".
+5. `POST /test/submit` con una pregunta repetida → `400` "No puede haber preguntas repetidas en el envío".
+6. `POST /test/submit` con un valor fuera de rango (6) → `422` (validación automática de Pydantic).
+
+### Frontend
+
+Se agregó `frontend/js/views/test.js`: pantalla que muestra una pregunta a la vez con 5 opciones tipo Likert, navegación "Anterior"/"Siguiente" (el botón de avanzar se deshabilita hasta marcar una opción), indicador de progreso, y en la última pregunta el botón se convierte en "Enviar", que arma el payload estructurado y llama a `POST /test/submit`. `api.js` no necesitó cambios adicionales (ya soportaba `apiGet`/`apiPost` con el header `Authorization`). Se conectó el flujo completo: un login exitoso ahora navega directamente a la vista del test (antes solo mostraba un mensaje), y `app.js` revisa si hay un `access_token` guardado en `localStorage` al cargar la página para ir directo al test sin pedir login de nuevo (persistencia de sesión entre recargas).
+
+### Pendiente de verificación manual en navegador
+
+La navegación entre preguntas, el estado deshabilitado del botón y el mensaje final de envío se probaron confirmando que los archivos se sirven correctamente y que la API responde como se espera en cada paso, pero la experiencia interactiva completa (clics reales, navegación entre pantallas) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, ya que este entorno no cuenta con uno disponible para automatizar esa verificación.

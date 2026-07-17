@@ -1,3 +1,7 @@
 const appContainer = document.getElementById("app");
 
-renderRegisterView(appContainer);
+if (localStorage.getItem("access_token")) {
+  renderTestView(appContainer);
+} else {
+  renderLoginView(appContainer);
+}
