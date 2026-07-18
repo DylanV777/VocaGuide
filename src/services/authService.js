@@ -13,3 +13,17 @@ export async function login(email, password) {
         body: JSON.stringify({ email, password })
     });
 }
+
+export async function register(name, email, password) {
+    if (!name || !email || !password) {
+        return {
+            success: false,
+            message: "Name, email and password are required."
+        };
+    }
+
+    return await apiRequest("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password })
+    });
+}

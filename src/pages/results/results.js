@@ -79,8 +79,25 @@ export async function resultsEvents() {
                     `).join("")}
                 </div>
             </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <button id="goCompare" class="rounded-3xl border border-slate-300 bg-white px-6 py-3 text-slate-700 font-semibold transition hover:bg-slate-100">
+                    Comparar carreras
+                </button>
+                <button id="goFavorites" class="rounded-3xl border border-slate-300 bg-white px-6 py-3 text-slate-700 font-semibold transition hover:bg-slate-100">
+                    Mis favoritos
+                </button>
+            </div>
         </div>
     `;
+
+    document.getElementById("goCompare").addEventListener("click", () => {
+        navigate("/compare");
+    });
+
+    document.getElementById("goFavorites").addEventListener("click", () => {
+        navigate("/favorites");
+    });
 
     const favoriteButtons = resultsContent.querySelectorAll(".favorite-btn");
 

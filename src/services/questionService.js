@@ -8,3 +8,32 @@ export async function getQuestions() {
     });
 
 }
+
+// POST /questions  (admin)
+export async function createQuestion(question) {
+
+    return apiRequest("/questions", {
+        method: "POST",
+        body: JSON.stringify(question)
+    });
+
+}
+
+// PUT /questions/:id  (admin)
+export async function updateQuestion(questionId, question) {
+
+    return apiRequest(`/questions/${questionId}`, {
+        method: "PUT",
+        body: JSON.stringify(question)
+    });
+
+}
+
+// DELETE /questions/:id  (admin)
+export async function deleteQuestion(questionId) {
+
+    return apiRequest(`/questions/${questionId}`, {
+        method: "DELETE"
+    });
+
+}

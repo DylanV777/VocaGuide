@@ -2,6 +2,9 @@ import { Login, loginEvents } from "../pages/login/login.js";
 import { Register, registerEvents } from "../pages/register/register.js";
 import { Test, testEvents } from "../pages/test/test.js";
 import { Results, resultsEvents } from "../pages/results/results.js";
+import { Compare, compareEvents } from "../pages/compare/compare.js";
+import { Favorites, favoritesEvents } from "../pages/favorites/favorites.js";
+import { Dashboard, dashboardEvents } from "../pages/dashboard/dashboard.js";
 
 
 export function Router(path = window.location.hash.replace("#", "") || window.location.pathname || "/") {
@@ -29,6 +32,21 @@ export function Router(path = window.location.hash.replace("#", "") || window.lo
         case "/results":
             app.innerHTML = Results();
             resultsEvents();
+            break;
+
+        case "/compare":
+            app.innerHTML = Compare();
+            compareEvents();
+            break;
+
+        case "/favorites":
+            app.innerHTML = Favorites();
+            favoritesEvents();
+            break;
+
+        case "/admin":
+            app.innerHTML = Dashboard();
+            dashboardEvents();
             break;
 
         default:

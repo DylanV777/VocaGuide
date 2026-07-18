@@ -11,7 +11,7 @@ export function Login() {
                     <p class="mt-3 text-slate-500">Accede para ver tus recomendaciones de carrera.</p>
                 </div>
 
-                <div class="space-y-6">
+                <form id="loginForm" class="space-y-6">
                     <label class="block text-slate-700 font-medium">
                         Correo electrónico
                         <input
@@ -43,7 +43,7 @@ export function Login() {
                     </button>
 
                     <p id="loginError" class="min-h-[1.25rem] text-sm text-red-600"></p>
-                </div>
+                </form>
 
                 <div class="mt-8 text-center text-slate-500">
                     ¿Aún no tienes cuenta?
