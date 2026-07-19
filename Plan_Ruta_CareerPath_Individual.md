@@ -78,11 +78,11 @@ Se redujo el backlog a las historias estrictamente necesarias para que el MVP fu
 - El usuario puede ver una lista de sus resultados pasados.
 - Se muestra al menos la fecha y el perfil obtenido en cada registro.
 
-### HU-08 · Administrar preguntas y carreras — **Should**
-*Como administrador, quiero gestionar preguntas y carreras para mantener actualizado el contenido del test.*
-- El administrador puede crear, editar y eliminar preguntas.
-- El administrador puede crear, editar y eliminar carreras.
-- Solo usuarios con rol admin pueden acceder a estas operaciones.
+## HU-08 · Gestionar preguntas y carreras desde la interfaz — **Should**
+*Como administrador, quiero gestionar preguntas y carreras desde una pantalla propia de la aplicación en vez de usar Swagger o la base de datos directamente, para poder mantener el contenido del test de forma más ágil.*
+- La opción "Administración" solo aparece en la navegación si el usuario autenticado tiene rol `admin`.
+- El administrador puede ver el listado completo de preguntas y de carreras, crear nuevas, editar las existentes y eliminarlas, sin salir de la aplicación.
+- Los errores devueltos por el backend (perfil inexistente, nombre u `order` duplicado, borrado bloqueado por reglas de negocio) se muestran de forma clara en la interfaz, no como un error genérico.
 
 ### HU-09 · Consultar analítica básica — **Should**
 *Como administrador, quiero ver estadísticas simples sobre el uso del test para entender cómo lo están usando los usuarios.*

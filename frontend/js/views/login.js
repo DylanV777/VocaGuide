@@ -30,6 +30,10 @@ function renderLoginView(container) {
     try {
       const { access_token } = await apiPost("/auth/login", { email, password });
       localStorage.setItem("access_token", access_token);
+
+      const me = await apiGet("/auth/me");
+      localStorage.setItem("user_role", me.role);
+
       renderNav();
       renderTestView(container);
     } catch (error) {

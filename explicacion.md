@@ -355,3 +355,94 @@ Se agregó `frontend/js/views/history.js`: pantalla que lista cada resultado pas
 ### Pendiente de verificación manual en navegador
 
 Se confirmó que `history.js` se sirve correctamente y que la API responde como se espera en cada caso probado, pero la vista final (tarjetas de historial, formato de fecha, mensaje de estado vacío) debe confirmarse visualmente abriendo `http://127.0.0.1:5500` en un navegador real.
+
+---
+
+## HU-08 · Administrar preguntas y carreras — **Should**
+
+> *Como administrador, quiero gestionar preguntas y carreras para mantener actualizado el contenido del test.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El administrador puede crear, editar y eliminar preguntas | Nuevo router `routers/admin.py`: `POST /admin/questions`, `PUT /admin/questions/{id}`, `DELETE /admin/questions/{id}`. |
+| El administrador puede crear, editar y eliminar carreras | `POST /admin/careers`, `PUT /admin/careers/{id}`, `DELETE /admin/careers/{id}`. |
+| Solo usuarios con rol admin pueden acceder a estas operaciones | `require_role("admin")` (construido y probado desde HU-02, pero nunca usado hasta ahora) aplicado a **nivel de router completo** (`APIRouter(..., dependencies=[Depends(require_role("admin"))])`), no endpoint por endpoint: garantiza que ninguna ruta nueva bajo `/admin` pueda quedar accidentalmente desprotegida en el futuro. |
+
+### Un bug real encontrado y corregido durante esta historia
+
+Al probar `POST /admin/questions` por primera vez, la base de datos devolvió `duplicate key value violates unique constraint "questions_pkey"` al intentar insertar una fila con `id=1`, que ya existía. Causa raíz: las migraciones semilla de HU-03 y HU-05 (`cd11d45b33a2` y `74f8e78b7b31`) cargaron preguntas, perfiles y carreras con **ids explícitos** vía `op.bulk_insert`, lo cual en PostgreSQL no avanza la secuencia autoincremental asociada a la columna `id`. Como resultado, las secuencias de `vocational_profiles`, `questions` y `careers` quedaron ancladas en `1` mientras las tablas ya tenían filas hasta el id `20`; el primer `INSERT` de la aplicación (sin id explícito) chocaba con esas filas semilla. Esto no se había manifestado antes porque HU-01 a HU-07 solo *leían* esas tablas, nunca insertaban en ellas. Se corrigió con una nueva migración (`057904244978_fix_sequences_after_explicit_id_seed_`) que sincroniza cada secuencia con el máximo `id` real de su tabla (`setval(..., MAX(id))`), sin tocar las migraciones ya aplicadas.
+
+### Decisiones técnicas
+
+- **Ambos CRUD viven en un router nuevo (`admin.py`)** en vez de mezclarse dentro de `test.py`/`careers.py`: a diferencia de HU-06/07 (que reutilizaron el router existente por ser una extensión natural de esa misma funcionalidad), aquí se trata de un dominio distinto (gestión de contenido, no consumo del test), con su propio requisito transversal de autorización (`admin`), así que un archivo propio deja esa frontera más clara.
+- **Dos DTOs de salida distintos para el mismo modelo `Question`**: la API pública (`GET /test/questions`, usada por quien responde el test) sigue devolviendo `QuestionOut` sin `profile_id`, por la razón ya documentada en HU-03 (no revelar qué perfil mide cada pregunta). El nuevo `AdminQuestionOut` sí incluye `profile_id`, porque el administrador necesita verlo y editarlo. Mismo modelo de datos, distinta información expuesta según quién consulta.
+- **Protección de borrado para carreras (mínimo 3 por perfil)**: se extrajo como función pura `would_break_minimum_careers(current_count_for_profile, minimum_required=3)`, reutilizando la misma constante `RECOMMENDED_CAREERS_COUNT` que ya validaba `select_recommended_careers` en HU-05. Antes de esta historia, ese mínimo de 3 solo estaba protegido "hacia adelante" (fallaba al calcular una recomendación si ya faltaban carreras); ahora también se protege "hacia atrás", impidiendo que el propio CRUD cree esa situación.
+- **Protección de borrado para preguntas con respuestas ya registradas**: `Answer.question_id` tiene una FK hacia `questions.id` sin `ON DELETE CASCADE`. En vez de dejar que ese error de integridad se propague como un `500` genérico, se captura `IntegrityError` y se traduce a un `400` con un mensaje claro. Esto protege la integridad de los intentos históricos (relevante para HU-07: el historial de un usuario no debe poder quedar con referencias rotas a preguntas borradas).
+- **No se aplicó una protección equivalente de "mínimo de preguntas" ni de "mínimo de preguntas por perfil"**: a diferencia de las carreras (donde `select_recommended_careers` literalmente falla si faltan), no existe ninguna regla técnica en el proyecto que exija un número mínimo de preguntas o un balance por perfil — `validate_submission` y `calculate_profile` funcionan correctamente con cualquier cantidad de preguntas, siempre que el usuario responda todas las que existan en ese momento (el frontend ya calcula el total dinámicamente, no tiene el número 20 escrito a mano). Se documenta aquí como una decisión consciente: no agregar una validación para un problema que el sistema no tiene.
+- **El `order` de una pregunta nueva es opcional**: si no se especifica, se autoasigna como `MAX(order) + 1`; si se especifica y ya está en uso, se rechaza con `400` en vez de reordenar silenciosamente otras preguntas.
+- **Se creó un usuario administrador de prueba promoviendo manualmente su `role` a `admin` directamente en la base de datos** (`UPDATE users SET role='admin' WHERE email=...`), ya que —a propósito— no existe ningún mecanismo en la API para auto-asignarse el rol admin (ni falta que debería existir uno: la Definition of Done de este proyecto no contempla un flujo de "primer admin", así que se resuelve igual que lo haría un despliegue real, con acceso directo a la base de datos).
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_admin.py`, con `pytest`), sobre la función pura `would_break_minimum_careers()`:
+1. Con exactamente el mínimo (3), borrar una más rompería la regla → `True`.
+2. Con margen (4), borrar una más sigue siendo seguro → `False`.
+3. Con un mínimo personalizado distinto del valor por defecto, la función respeta el parámetro.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl), con un usuario admin y uno normal:
+1. `GET /admin/questions` sin token → `401`; con token de usuario normal → `403`; con token admin → `200`.
+2. Crear pregunta sin `order` → se autoasigna correctamente; con `profile_id` inexistente → `400`.
+3. Editar una pregunta (cambiar el texto) → `200` con los datos actualizados.
+4. Eliminar una pregunta sin respuestas asociadas → `204`; eliminar una pregunta que ya tiene respuestas registradas (de pruebas anteriores) → `400` con mensaje claro, no un `500`.
+5. Crear carrera → `201`; con nombre duplicado → `400`.
+6. Editar una carrera (descripción) → `200`.
+7. Eliminar una carrera cuando su perfil queda con 4 restantes → `204` (permitido); eliminar una más cuando el perfil ya está en exactamente 3 → `400` "el perfil se quedaría con menos de 3 carreras" (verificado que efectivamente no se borró).
+8. Después de las pruebas, se restauró vía la propia API la carrera de prueba que se había eliminado, dejando los 20 registros semilla intactos.
+
+### Frontend
+
+No se construyó una interfaz de administración en esta historia. El alcance del proyecto (ver `Plan_Ruta_CareerPath_Individual.md`) no incluye una pantalla de administración entre sus entregables de Fase 5 más allá del backlog técnico `ADMIN-01`/`ADMIN-02`, que se limita a los endpoints; y sin un usuario admin real en producción/demo, una UI dedicada no tendría quién la probara más allá de lo ya cubierto por las pruebas manuales vía API. Si la sustentación lo requiere, se puede probar el CRUD directamente desde `/docs` (Swagger) autenticándose con un usuario admin.
+
+---
+
+## HU-10 · Gestionar preguntas y carreras desde la interfaz — **Should**
+
+> *Como administrador, quiero gestionar preguntas y carreras desde una pantalla propia de la aplicación en vez de usar Swagger o la base de datos directamente, para poder mantener el contenido del test de forma más ágil.*
+
+Historia adicional, agregada después de HU-08 a solicitud explícita del usuario, para cerrar la brecha frontend que esa historia había dejado intencionalmente abierta. El detalle completo (título, criterios de aceptación y backlog técnico) está en su propio archivo, [`HU-10_Administracion_Interfaz.md`](HU-10_Administracion_Interfaz.md), redactado con el mismo formato usado en `Plan_Ruta_CareerPath_Individual.md`. Aquí solo se documenta el proceso de implementación.
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| La opción "Administración" solo aparece en la nav si el usuario tiene rol admin | `app.js` ahora llama a `GET /auth/me` justo después de obtener el token (en `initApp()` al cargar la página, y en `login.js` justo después de un login exitoso) y guarda el rol en `localStorage`. `renderNav()` solo agrega el botón "Administración" si `localStorage.getItem("user_role") === "admin"`. |
+| El administrador puede ver, crear, editar y eliminar preguntas y carreras sin salir de la app | Nueva vista `frontend/js/views/admin.js`, con dos pestañas ("Preguntas" y "Carreras"), cada una con un formulario (crear/editar) y un listado con botones "Editar"/"Eliminar" por fila, todo contra los endpoints `/admin/*` construidos en HU-08. |
+| Los errores del backend se muestran de forma clara | Mismo patrón de manejo de errores usado en el resto del frontend desde HU-01: `api.js` extrae `detail` de la respuesta y lo lanza como `Error`, cada formulario lo captura y lo muestra en un `<p class="message message--error">`. |
+
+### Un bug real encontrado y corregido durante esta historia
+
+`api.js` llamaba incondicionalmente a `response.json()` en cada request. Los endpoints `DELETE /admin/questions/{id}` y `DELETE /admin/careers/{id}` (HU-08) responden `204 No Content`, es decir, **sin cuerpo**. Intentar parsear una respuesta vacía como JSON lanza una excepción, lo que habría roto todos los botones "Eliminar" apenas se probara en el navegador (no se detectó antes porque hasta ahora el frontend nunca había hecho un `DELETE`). Se corrigió leyendo la respuesta como texto primero (`response.text()`) y solo intentando `JSON.parse` si el cuerpo no está vacío. Aprovechando el cambio, se agregaron `apiPut` y `apiDelete` a `api.js`, que hasta ahora solo tenía `apiGet`/`apiPost`.
+
+### Decisiones técnicas
+
+- **El rol se obtiene de `GET /auth/me`, no se decodifica del JWT en el cliente**: el token ya incluye el claim `role`, y decodificarlo en el navegador (JSON.parse de la parte central en base64url) habría evitado una llamada de red, pero se prefirió reutilizar un endpoint que ya existía y cuyo contrato es estable, en vez de acoplar el frontend a la estructura interna del token. El costo (una llamada extra a `/auth/me`) es insignificante y ya se pagaba antes en una versión anterior de `login.js`.
+- **El rol mostrado en la nav es solo una conveniencia de UI, no un control de seguridad real**: si alguien manipulara `localStorage.user_role` a mano, vería el botón "Administración", pero cada petición a `/admin/*` sigue validando el rol en el backend vía `require_role("admin")` (HU-02/HU-08). La UI oculta la opción para no confundir a usuarios sin permisos; no es la barrera de seguridad, que vive exclusivamente en el servidor.
+- **Preguntas y carreras comparten una sola vista con pestañas (`admin.js`)** en vez de dos vistas separadas: son dos formularios estructuralmente casi idénticos (crear/editar/eliminar con un selector de perfil), y ambos son parte del mismo concepto de "Administración" en la navegación; separarlos en dos botones de nav distintos habría fragmentado innecesariamente algo que conceptualmente es una sola pantalla con dos pestañas.
+- **`GET /admin/profiles` es un endpoint nuevo, admin-only**: los formularios de preguntas y carreras necesitan poblar un `<select>` con los 5 perfiles vocacionales (id + nombre) para poder enviar `profile_id`. No existía ningún endpoint que expusiera esa lista con `id` incluido (`VocationalProfileOut` nunca lo llevaba, porque en todos los usos anteriores el perfil siempre iba anidado dentro de otra respuesta ya identificada por su propio id). Se agregó `id: int` a `VocationalProfileOut` —cambio compatible hacia atrás, ya que todo el código que la usaba construye la instancia a partir de un objeto `VocationalProfile` real, que siempre tiene `id`— en vez de crear un esquema paralelo solo para este caso.
+- **Confirmación (`confirm()`) antes de cada eliminación**: es una acción destructiva; un clic accidental en "Eliminar" no debería borrar una pregunta o carrera sin una confirmación explícita.
+- **No se agregó paginación ni búsqueda al listado de preguntas/carreras**: con 20 elementos cada uno, una lista simple es perfectamente usable; agregar paginación ahora habría sido resolver un problema que no existe todavía.
+
+### Pruebas realizadas
+
+**Manuales end-to-end** (backend real + PostgreSQL real), replicando exactamente las llamadas que dispara la interfaz:
+1. `GET /admin/profiles` con usuario admin → `200` con los 5 perfiles (incluyendo `id`); con usuario normal → `403`.
+2. `GET /auth/me` confirma que el `role` viaja correctamente en la respuesta que consume `app.js`/`login.js` para decidir si mostrar el botón "Administración".
+3. Ciclo completo crear → editar → eliminar una pregunta de prueba usando exactamente el mismo payload que construiría el formulario (`text`, `profile_id`, sin `order` en la creación) → cada paso respondió como se esperaba, y el `DELETE` final devolvió `204` sin cuerpo (validando la corrección del bug de `api.js`).
+4. Verificación de que los 20 registros semilla de `questions` y `careers` quedaron intactos después de las pruebas (la pregunta de prueba se creó y se eliminó, sin dejar residuos).
+5. Se reutilizó la batería de pruebas de HU-08 (permisos por rol, validaciones de negocio, protección de borrado) ya que la interfaz llama exactamente a los mismos endpoints sin lógica adicional en el servidor.
+
+### Pendiente de verificación manual en navegador
+
+Se verificó que `admin.js` se sirve correctamente y que cada llamada a la API reproduce fielmente lo que la interfaz dispararía, pero la experiencia visual completa (cambio de pestañas, formulario precargado al editar, diálogo de confirmación al eliminar, mensajes de error en pantalla) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, con el usuario admin (`sinsertest@example.com` / `clave1234`).

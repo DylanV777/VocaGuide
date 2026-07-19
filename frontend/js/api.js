@@ -13,10 +13,11 @@ async function apiRequest(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await response.json();
+  const rawText = await response.text();
+  const data = rawText ? JSON.parse(rawText) : null;
 
   if (!response.ok) {
-    const detail = data.detail;
+    const detail = data?.detail;
     const message = Array.isArray(detail)
       ? detail.map((error) => error.msg).join(" ")
       : detail ?? "Error inesperado";
@@ -32,4 +33,12 @@ function apiPost(path, body) {
 
 function apiGet(path) {
   return apiRequest("GET", path);
+}
+
+function apiPut(path, body) {
+  return apiRequest("PUT", path, body);
+}
+
+function apiDelete(path) {
+  return apiRequest("DELETE", path);
 }

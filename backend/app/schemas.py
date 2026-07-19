@@ -59,6 +59,7 @@ class TestSubmitIn(BaseModel):
 class VocationalProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     code: str
     name: str
     description: str
@@ -93,3 +94,36 @@ class ResultHistoryItemOut(BaseModel):
     id: int
     profile: VocationalProfileOut
     created_at: datetime
+
+
+class QuestionCreate(BaseModel):
+    text: str = Field(min_length=1)
+    profile_id: int
+    order: int | None = None
+
+
+class QuestionUpdate(BaseModel):
+    text: str | None = Field(default=None, min_length=1)
+    profile_id: int | None = None
+    order: int | None = None
+
+
+class AdminQuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order: int
+    text: str
+    profile_id: int
+
+
+class CareerCreate(BaseModel):
+    name: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    profile_id: int
+
+
+class CareerUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
+    description: str | None = Field(default=None, min_length=1)
+    profile_id: int | None = None
