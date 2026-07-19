@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import Answer, Career, Question, Result, TestAttempt, User, VocationalProfile
-from app.schemas import AnswerIn, QuestionOut, TestSubmitIn, TestSubmitOut
+from app.schemas import AnswerIn, QuestionOut, ResultHistoryItemOut, TestSubmitIn, TestSubmitOut
 
 router = APIRouter(prefix="/test", tags=["test"])
 
@@ -94,3 +94,21 @@ def submit_test(
         profile=profile,
         recommended_careers=recommended_careers,
     )
+
+
+@router.get("/history", response_model=list[ResultHistoryItemOut])
+def get_test_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    results = (
+        db.query(Result)
+        .filter(Result.user_id == current_user.id)
+        .order_by(Result.created_at.desc())
+        .all()
+    )
+    return [
+        ResultHistoryItemOut(
+            id=result.id,
+            profile=db.get(VocationalProfile, result.profile_id),
+            created_at=result.created_at,
+        )
+        for result in results
+    ]

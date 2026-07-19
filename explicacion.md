@@ -318,3 +318,40 @@ Se agregó `frontend/js/views/careers.js`: pantalla de catálogo que lista las c
 ### Pendiente de verificación manual en navegador
 
 Se confirmó que `careers.js` y los nuevos estilos se sirven correctamente y que la API responde como se espera en cada caso probado, pero la experiencia visual completa (navegación entre "Test vocacional" y "Catálogo de carreras", clic en una carrera para ver su detalle, botón de volver) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real.
+
+---
+
+## HU-07 · Consultar historial de resultados — **Should**
+
+> *Como usuario, quiero ver mis resultados anteriores para comparar mi evolución en el tiempo.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El sistema almacena cada resultado de test con su fecha | Ya se cumplía desde HU-04: la tabla `results` guarda `created_at` en cada fila, una por intento. Esta historia no necesitó ningún cambio de modelo de datos, solo exponer lo que ya se guardaba. |
+| El usuario puede ver una lista de sus resultados pasados | Nuevo endpoint `GET /test/history` (`routers/test.py`), protegido por `get_current_user`, que devuelve todos los resultados del usuario autenticado (filtrados por `Result.user_id`), del más reciente al más antiguo. |
+| Se muestra al menos la fecha y el perfil obtenido en cada registro | `ResultHistoryItemOut` expone `id`, `profile` (código, nombre y descripción) y `created_at` por cada resultado. |
+
+### Decisiones técnicas
+
+- **El endpoint vive en el router de `test.py`** (`GET /test/history`) en vez de crear un router nuevo de "resultados": el historial es una vista distinta sobre el mismo dominio (`Result`) que ya maneja ese módulo (preguntas, envío, cálculo de perfil), así que no se justificaba partirlo en un archivo aparte solo por esta historia.
+- **Orden descendente por fecha** (`Result.created_at.desc()`): para "comparar mi evolución en el tiempo" tiene más sentido ver primero el resultado más reciente.
+- **Usuario sin ningún intento recibe una lista vacía (`200`, `[]`)**, no un error: no completar el test todavía es un estado válido, no una condición de error.
+- **Sin pruebas automatizadas nuevas**: mismo razonamiento que en HU-06 — es una consulta directa a la base de datos filtrada y ordenada, sin ninguna regla de negocio pura que aislar en una función testeable sin base de datos. Se verificó con pruebas manuales end-to-end.
+- **No se optimizó con un `JOIN` explícito** entre `results` y `vocational_profiles` (se resuelve con una consulta por cada resultado, igual que en `POST /test/submit` y `GET /careers/{id}`): a esta escala de datos (un usuario tiene, como mucho, unas pocas decenas de intentos) el costo es insignificante, y mantener el mismo patrón de "consulta explícita por relación" en todo el proyecto es más consistente que optimizar prematuramente un único endpoint.
+
+### Pruebas realizadas
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl):
+1. `GET /test/history` sin token → `401`.
+2. `GET /test/history` con un usuario que ya había hecho el test varias veces (en pruebas de HU-04/05) → `200` con 5 resultados, ordenados del más reciente al más antiguo, cada uno con su perfil y fecha.
+3. `GET /test/history` con un usuario recién registrado que nunca respondió el test → `200` con lista vacía `[]`.
+
+### Frontend
+
+Se agregó `frontend/js/views/history.js`: pantalla que lista cada resultado pasado como una tarjeta con el nombre del perfil obtenido y la fecha formateada de forma legible (`toLocaleString("es-CO", ...)`). Si el usuario no tiene resultados, muestra un mensaje en vez de una lista vacía sin contexto. Se agregó un tercer botón "Mi historial" a la barra de navegación persistente (`app.js`), junto a "Test vocacional" y "Catálogo de carreras".
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó que `history.js` se sirve correctamente y que la API responde como se espera en cada caso probado, pero la vista final (tarjetas de historial, formato de fecha, mensaje de estado vacío) debe confirmarse visualmente abriendo `http://127.0.0.1:5500` en un navegador real.

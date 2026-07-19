@@ -87,3 +87,9 @@ class TestSubmitOut(BaseModel):
     profile: VocationalProfileOut
     recommended_careers: list[CareerOut]
     message: str = "Test completado. Este es tu perfil vocacional y tus carreras recomendadas."
+
+
+class ResultHistoryItemOut(BaseModel):
+    id: int
+    profile: VocationalProfileOut
+    created_at: datetime
