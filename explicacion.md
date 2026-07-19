@@ -597,3 +597,46 @@ Se amplió `frontend/js/views/register.js`: el formulario ahora pide Nombre, Ape
 ### Pendiente de verificación manual en navegador
 
 Se confirmó el flujo completo por API (incluyendo los casos de error), pero la experiencia del formulario (orden visual de los campos, comportamiento del `<select>` de género, mensajes de error en pantalla) debe confirmarse abriendo la app en un navegador real.
+
+---
+
+## Dockerizar el backend — simplificar la reproducción del proyecto
+
+No es una historia de usuario; es una mejora de infraestructura de desarrollo, pedida explícitamente para que un colaborador (o un líder que solo quiere revisar el proyecto) pueda levantarlo con el mínimo de pasos posible, sin instalar Python 3.12 ni crear un entorno virtual manualmente.
+
+### Cómo se implementó
+
+- **`backend/Dockerfile`**: imagen basada en `python:3.12-slim` (misma versión ya exigida por el proyecto), instala `requirements.txt`, copia el código y arranca con un comando que primero corre `alembic upgrade head` en un bucle de reintentos y luego `uvicorn --host 0.0.0.0 --reload`.
+- **`backend/.dockerignore`**: excluye `venv/`, `__pycache__/`, `.env`, `.pytest_cache/` y `tests/` de la imagen (nada de eso debe viajar dentro del contenedor).
+- **`docker-compose.yml`**: se agregó el servicio `backend` (se construye desde `./backend`), con `depends_on: db: condition: service_healthy` y las variables `DATABASE_URL`/`JWT_SECRET_KEY` puestas directamente ahí (host `db`, el nombre del servicio, en vez de `localhost`). Se agregó un `healthcheck` (`pg_isready`) al servicio `db`, que antes no lo tenía. Se montan `./backend/app` y `./backend/alembic` como volúmenes dentro del contenedor, para que los cambios de código en el host se reflejen de inmediato gracias a `--reload`, sin reconstruir la imagen en cada edición.
+
+### Un bug real encontrado y corregido durante esta historia
+
+Al probar el flujo completo simulando a un colaborador nuevo (un proyecto de Docker Compose aparte, con un volumen de PostgreSQL totalmente vacío, para no usar los datos ya existentes en el entorno de Jairo), el contenedor `backend` entró en un **crash-loop**: `alembic upgrade head` fallaba con `sqlalchemy.exc.OperationalError: ... Name or service not known` al intentar resolver el hostname `db`, a pesar de que `depends_on: condition: service_healthy` ya había confirmado que Postgres estaba `healthy`. Causa: que Postgres esté "healthy" (acepta conexiones) no garantiza que la resolución de nombres interna de Docker para el contenedor `backend` esté lista en ese mismo instante — es una condición de carrera conocida, más notoria en Docker Desktop sobre Windows. El primer intento de esta prueba en el entorno normal de Jairo (con datos ya existentes) también había fallado una vez de la misma forma silenciosa, pero como el segundo intento funcionó, en su momento pareció un evento aislado; al reproducirlo desde cero quedó claro que era este problema de fondo, no una casualidad.
+
+Se corrigió cambiando el comando de arranque del contenedor de un solo intento (`alembic upgrade head && uvicorn ...`) a un bucle de reintentos (`until alembic upgrade head; do echo ...; sleep 2; done && exec uvicorn ...`): si la conexión falla (por DNS todavía no resuelto o porque Postgres de verdad no está listo), simplemente reintenta cada 2 segundos hasta lograrlo, en vez de morir en el primer intento. Es el patrón estándar de "esperar a la base de datos" en Docker Compose, y cubre de paso cualquier otra causa de arranque lento de la base de datos, no solo el problema de DNS puntual que se observó.
+
+### Decisiones técnicas
+
+- **Variables de entorno para el contenedor definidas directamente en `docker-compose.yml`, no en `backend/.env`**: el objetivo explícito de esta historia es que un colaborador *no* tenga que crear ni editar ningún archivo para correr el proyecto. El flujo con `.env` (documentado en el README como "alternativa sin Docker") sigue existiendo intacto para quien prefiera correr el backend con `venv` directamente en su máquina (por ejemplo, para depurar con breakpoints del IDE sin entrar al contenedor). El `JWT_SECRET_KEY` de desarrollo que queda en `docker-compose.yml` es un valor fijo, documentado como solo apto para desarrollo local — el mismo criterio que ya aplicaba `.env.example` con su placeholder.
+- **Healthcheck en `db` (`pg_isready`) agregado como parte de esta historia**: no existía antes porque no hacía falta (nada dependía de la base de datos a nivel de Docker Compose hasta ahora). Es un prerrequisito de `depends_on: condition: service_healthy`, pero —como muestra el bug de arriba— no es suficiente por sí solo; se mantiene igual porque reduce la ventana del problema (sin él, `backend` arrancaría inmediatamente después de que el contenedor de `db` exista, sin esperar nada) y el bucle de reintentos cubre el resto.
+- **Bind mounts de `app/` y `alembic/` (no todo el proyecto) hacia el contenedor**: permite seguir editando código y ver el efecto con `--reload` sin reconstruir la imagen, igual que el flujo de `venv` de siempre. No se montó `requirements.txt` ni el resto del proyecto porque un cambio de dependencias sí debe forzar una reconstrucción de imagen (`docker compose up -d --build`), para no tener un contenedor con código nuevo corriendo contra dependencias viejas sin que nadie lo note.
+- **`tests/` excluido de la imagen (`.dockerignore`)**: el contenedor está pensado para *correr* la aplicación, no para ejecutar su batería de pruebas; `pytest` se sigue corriendo contra el entorno `venv` local, documentado aparte en el README. Meter las pruebas dentro de la imagen de producción/demo no aporta nada al caso de uso que motivó esta historia (que alguien pueda levantar y usar la app).
+- **No se dockerizó también el frontend**: es JS vanilla sin paso de build, así que Live Server o `python -m http.server` ya son igual de simples (o más) que agregar un contenedor Nginx solo para servir archivos estáticos; hacerlo habría sido complejidad sin beneficio real para este proyecto.
+- **`README.md` reestructurado** para presentar el camino con Docker como el recomendado/rápido, y el flujo manual con `venv` como alternativa explícita para quien necesite depurar el backend directamente en su máquina.
+
+### Pruebas realizadas
+
+Dado que este cambio es de infraestructura (no hay lógica de negocio nueva que probar con `pytest`), la verificación fue completamente manual, sobre Docker real:
+
+1. **Sobre el entorno existente de Jairo** (`docker compose up -d --build`): la imagen construyó correctamente, las migraciones corrieron (sin aplicar nada nuevo, porque esa base ya estaba al día por pruebas anteriores con `venv`), y `POST /auth/register` respondió `201` con los datos completos.
+2. **Simulación de un colaborador nuevo**, en un proyecto de Docker Compose separado (`docker compose -p careerpath-freshtest up -d --build`) con su propio volumen de PostgreSQL vacío, para no arriesgar los datos reales del entorno de Jairo:
+   - Primer intento: reprodujo el bug de DNS descrito arriba (crash-loop).
+   - Tras el fix del bucle de reintentos: las **ocho migraciones corrieron en orden desde cero** (creación de tablas, semillas de perfiles/preguntas/carreras, fix de secuencias, y la migración de datos de perfil de HU-01) y el contenedor quedó estable.
+   - `POST /auth/register` → `201`; `POST /auth/login` → `200` con token; `GET /careers` con ese token → `200` con las 20 carreras semilla.
+   - Se destruyó el proyecto de prueba (`docker compose -p careerpath-freshtest down -v`), eliminando su volumen aparte, sin tocar el volumen real del proyecto de Jairo.
+3. **Verificación de que los datos reales de Jairo sobrevivieron** a todo el proceso: tras devolver `docker compose up -d` al proyecto normal, la tabla `users` seguía con sus filas (`SELECT count(*) FROM users` sin cambios respecto a antes de la prueba).
+
+### Pendiente
+
+Verificación manual en navegador de que el frontend, apuntando al backend ahora servido desde Docker en `http://localhost:8000`, funciona igual que con el backend corrido vía `venv` (no debería haber diferencia, ya que el contrato de la API no cambió, pero queda pendiente confirmarlo visualmente junto con el resto de verificaciones de navegador ya anotadas en historias anteriores).
