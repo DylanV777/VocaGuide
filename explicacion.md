@@ -551,3 +551,49 @@ No es una historia de usuario del plan de ruta; es el complemento natural de HU-
 ### Pruebas realizadas
 
 Sin backend involucrado, no aplica ninguna prueba automatizada nueva. Verificación manual pendiente en navegador: iniciar sesión, confirmar que aparece "Cerrar sesión" en la nav, hacer clic y confirmar que vuelve a la pantalla de login, que la barra de navegación desaparece, y que recargar la página después ya no restaura la sesión (por no quedar `access_token` en `localStorage`).
+
+---
+
+## Datos de perfil en el registro — complemento de HU-01
+
+No es una historia del plan de ruta; es una ampliación explícita del formulario de registro (HU-01), agregando nombre, apellido, país y género como datos obligatorios de la cuenta.
+
+### Cómo se implementó
+
+| Campo | Modelo (`models.py`) | Validación (`schemas.py`, `UserCreate`) |
+|---|---|---|
+| Nombre | `first_name`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| Apellido | `last_name`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| País | `country`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| Género | `gender`, `String(20)`, nullable, `CHECK (gender IN ('hombre','mujer'))` | `Literal["hombre", "mujer"]`, obligatorio |
+
+Migración nueva `b6d2a1f4c7e9_add_profile_fields_to_users.py` (encadenada después de `057904244978`, la última existente): agrega las cuatro columnas a `users` y el `CHECK` de género. `POST /auth/register` (`routers/auth.py`) ahora recibe estos cuatro campos en `UserCreate` y los pasa al constructor de `User`. `UserOut` (usado por `/auth/register` y `/auth/me`) los expone también.
+
+### Decisiones técnicas
+
+- **Columnas nullable a nivel de base de datos, obligatorias a nivel de API**: la tabla `users` ya tenía filas de usuarios reales creados durante las pruebas manuales de HU-01 a HU-10 (`jairo@example.com`, el usuario admin, etc.), ninguna con estos datos. Agregar las columnas como `NOT NULL` habría roto la migración contra esas filas existentes (no hay ningún valor razonable que rellenar automáticamente para "nombre" o "país" de un usuario ya creado). Se optó por el mismo patrón que ya usa `role`: la integridad fuerte de negocio ("todo usuario *nuevo* debe traer estos datos") se garantiza en la capa de Pydantic (`UserCreate` los declara sin valor por defecto, así que faltan → `422`), mientras que la base de datos permite `NULL` para no invalidar el histórico. Los usuarios registrados antes de esta historia simplemente quedan con estos campos en `NULL`; no se hizo ningún backfill porque no hay ningún dato real que inferir para ellos.
+- **`CHECK (gender IN ('hombre', 'mujer'))` a nivel de base de datos, además de `Literal[...]` en Pydantic**: mismo doble-candado ya usado en `role` (`ck_users_role`) — un valor fuera de las dos opciones no puede llegar a la base de datos ni siquiera si se inserta por fuera de la API. Se limitó exactamente a las dos opciones que se pidieron explícitamente ("hombre, mujer"), sin agregar opciones adicionales no solicitadas (por ejemplo "otro"); si en el futuro se requiere ampliar el conjunto de valores, es un cambio de una sola migración (agregar el valor al `CHECK` y al `Literal`), no un rediseño.
+- **País como texto libre (`String(100)`), no un selector con lista fija de países**: no existe en el proyecto ningún catálogo de países ya definido, y construir/mantener uno (con sus códigos ISO, etc.) es complejidad no pedida por el alcance actual. Un campo de texto simple cumple el requisito ("¿de qué país es?") sin esa sobre-ingeniería.
+- **Sin endpoint para editar estos datos después del registro**: no se pidió como parte de esta ampliación (solo se pidió agregarlos "en el formulario de registrarse"); agregar edición de perfil habría sido una historia de usuario nueva no solicitada.
+- **El formulario de registro pide estos cuatro campos antes que correo/contraseña**: orden pensado como flujo natural de un formulario de registro (quién eres → cómo te identificas en el sistema), sin ningún requisito funcional detrás; es una decisión puramente de UX, fácil de reordenar si no se prefiere así.
+
+### Un problema operativo encontrado (no relacionado con el código)
+
+Al probar el nuevo endpoint contra el servidor que ya estaba corriendo, la respuesta ignoró los cuatro campos nuevos sin error (devolvió `201` con el `UserOut` viejo). Causa: ese proceso de `uvicorn` se había iniciado sin la bandera `--reload` (`uvicorn app.main:app --port 8000`), así que seguía sirviendo el código anterior a los cambios de `models.py`/`schemas.py`/`auth.py`, y FastAPI/Pydantic simplemente descarta del payload cualquier campo que el esquema activo no reconozca, en vez de fallar. Se reinició el servidor con `--reload` para que futuros cambios de código se reflejen automáticamente sin reinicios manuales.
+
+### Pruebas realizadas
+
+**Automatizadas**: no se agregó ninguna nueva; `pytest` (22 pruebas existentes) se corrió después del cambio para confirmar que nada se rompió — en particular `test_auth.py::make_user`, que construye un `User` del ORM directamente sin pasar los campos nuevos, sigue funcionando porque son nullable a nivel de modelo.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl, tras aplicar la migración con `alembic upgrade head`):
+1. Registro con los cuatro campos y credenciales válidas → `201`, con `first_name`, `last_name`, `country` y `gender` presentes en la respuesta.
+2. Registro con `gender: "otro"` (valor fuera de las dos opciones permitidas) → `422`, mensaje de Pydantic indicando que solo se acepta `'hombre'` o `'mujer'`.
+3. Registro sin `first_name` → `422`, "Field required".
+
+### Frontend
+
+Se amplió `frontend/js/views/register.js`: el formulario ahora pide Nombre, Apellido, País (campos de texto) y Género (`<select>` con "Hombre"/"Mujer", sin opción preseleccionada válida — la primera opción es un placeholder deshabilitado que obliga a elegir explícitamente), antes de los campos de correo y contraseña ya existentes. Los cuatro se envían junto con `email`/`password` en el mismo `POST /auth/register`.
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó el flujo completo por API (incluyendo los casos de error), pero la experiencia del formulario (orden visual de los campos, comportamiento del `<select>` de género, mensajes de error en pantalla) debe confirmarse abriendo la app en un navegador real.

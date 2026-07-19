@@ -16,7 +16,14 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El correo ya está registrado")
 
-    user = User(email=payload.email, hashed_password=hash_password(payload.password))
+    user = User(
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        country=payload.country,
+        gender=payload.gender,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
