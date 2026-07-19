@@ -3,6 +3,7 @@ function renderAdminTabsHtml(activeTab) {
     <div class="admin-tabs">
       <button type="button" class="admin-tab ${activeTab === "questions" ? "admin-tab--active" : ""}" id="tab-questions">Preguntas</button>
       <button type="button" class="admin-tab ${activeTab === "careers" ? "admin-tab--active" : ""}" id="tab-careers">Carreras</button>
+      <button type="button" class="admin-tab ${activeTab === "analytics" ? "admin-tab--active" : ""}" id="tab-analytics">Analítica</button>
     </div>
   `;
 }
@@ -10,6 +11,58 @@ function renderAdminTabsHtml(activeTab) {
 function wireAdminTabs(container, profiles) {
   container.querySelector("#tab-questions").addEventListener("click", () => renderAdminQuestions(container, profiles));
   container.querySelector("#tab-careers").addEventListener("click", () => renderAdminCareers(container, profiles));
+  container.querySelector("#tab-analytics").addEventListener("click", () => renderAdminAnalytics(container, profiles));
+}
+
+async function renderAdminAnalytics(container, profiles) {
+  container.innerHTML = `
+    <section class="careers-catalog-card admin-card">
+      ${renderAdminTabsHtml("analytics")}
+      <h1>Analítica</h1>
+      <p>Cargando estadísticas...</p>
+    </section>
+  `;
+  wireAdminTabs(container, profiles);
+
+  let analytics;
+  try {
+    analytics = await apiGet("/admin/analytics");
+  } catch (error) {
+    container.innerHTML = `
+      <section class="careers-catalog-card admin-card">
+        ${renderAdminTabsHtml("analytics")}
+        <p class="message message--error">${error.message}</p>
+      </section>
+    `;
+    wireAdminTabs(container, profiles);
+    return;
+  }
+
+  const profileValue = analytics.most_frequent_profile ? analytics.most_frequent_profile.name : "Sin datos todavía";
+  const careerValue = analytics.most_recommended_career ? analytics.most_recommended_career.name : "Sin datos todavía";
+
+  container.innerHTML = `
+    <section class="careers-catalog-card admin-card">
+      ${renderAdminTabsHtml("analytics")}
+      <h1>Analítica</h1>
+
+      <div class="stat-tile-row">
+        <div class="stat-tile">
+          <p class="stat-tile-label">Tests completados</p>
+          <p class="stat-tile-value">${analytics.total_completed_tests}</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-tile-label">Perfil más frecuente</p>
+          <p class="stat-tile-value stat-tile-value--text">${profileValue}</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-tile-label">Carrera más recomendada</p>
+          <p class="stat-tile-value stat-tile-value--text">${careerValue}</p>
+        </div>
+      </div>
+    </section>
+  `;
+  wireAdminTabs(container, profiles);
 }
 
 async function renderAdminView(container) {

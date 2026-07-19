@@ -446,3 +446,48 @@ Historia adicional, agregada después de HU-08 a solicitud explícita del usuari
 ### Pendiente de verificación manual en navegador
 
 Se verificó que `admin.js` se sirve correctamente y que cada llamada a la API reproduce fielmente lo que la interfaz dispararía, pero la experiencia visual completa (cambio de pestañas, formulario precargado al editar, diálogo de confirmación al eliminar, mensajes de error en pantalla) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, con el usuario admin (`sinsertest@example.com` / `clave1234`).
+
+---
+
+## HU-09 · Consultar analítica básica — **Should**
+
+> *Como administrador, quiero ver estadísticas simples sobre el uso del test para entender cómo lo están usando los usuarios.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| El sistema muestra el perfil vocacional más frecuente entre los resultados guardados | `GET /admin/analytics` calcula la moda de `Result.profile_id` sobre todos los resultados guardados. |
+| El sistema muestra la carrera recomendada con más apariciones | Para cada resultado, se recalculan las 3 carreras que se le habrían recomendado (mismo criterio que `select_recommended_careers`, HU-05) y se cuenta cuántas veces aparece cada carrera en total; gana la de mayor conteo. |
+| El sistema muestra el número total de tests completados | Conteo simple de filas en `results` (una por cada test enviado y calculado, ver HU-04). |
+| Solo usuarios con rol admin pueden acceder a esta vista | El endpoint vive bajo el router `/admin`, que ya aplica `require_role("admin")` a nivel global desde HU-08. |
+
+### Decisiones técnicas
+
+- **"Carrera más recomendada" es una aproximación recalculada, no un registro histórico**: el sistema nunca guardó qué 3 carreras se mostraron exactamente en cada resultado pasado (HU-05 las calcula al vuelo en el momento del envío y no las persiste, ver esa historia). Guardar esa foto habría significado agregar una tabla nueva (`result_recommended_careers` o similar) solo para esta historia Should, cuando se puede obtener una respuesta suficientemente buena recalculando con los datos actuales. La consecuencia práctica: si el catálogo de carreras cambió después de generarse un resultado (por ejemplo, con el CRUD de HU-08/HU-10), la analítica refleja el catálogo *actual* aplicado retroactivamente, no una foto exacta de lo que vio cada usuario en su momento. Se documenta como limitación consciente, no como bug.
+- **Ambas funciones de cálculo (`most_frequent`, `most_recommended_career_id`) son puras**, reciben listas/diccionarios simples y no tocan la base de datos: siguen el mismo patrón que `calculate_profile` (HU-04) y `would_break_minimum_careers` (HU-08), lo que permitió probarlas exhaustivamente con `pytest` sin necesitar una base de datos real ni resultados de prueba previamente cargados.
+- **Mismo criterio de desempate que el resto del proyecto**: ante un empate, gana el id más bajo (perfil o carrera). Es la misma regla ya usada en `calculate_profile` (HU-04); mantenerla consistente evita introducir un criterio de desempate distinto para cada función.
+- **Sin resultados todavía → `null` en los campos de perfil/carrera, no un error**: un proyecto recién desplegado sin ningún test completado es un estado válido (`total_completed_tests: 0`), no una condición de error. El frontend lo traduce como "Sin datos todavía" en vez de intentar mostrar un perfil o carrera inexistente.
+- **Diseño visual de los stat tiles**: antes de construir la pestaña "Analítica" se cargó el skill `dataviz` de este entorno, que identificó el caso como un "stat tile" (etiqueta en minúscula sin dos puntos + valor grande semibold, sin sparkline ni delta porque no hay series de tiempo que comparar). Se mantuvo la paleta neutra ya usada en el resto de la aplicación (mismos tonos de texto/borde que las demás tarjetas) en vez de introducir la paleta de referencia del skill, porque no hay ninguna serie categórica que colorear: son tres valores independientes, no una comparación entre categorías, así que las reglas de color categórico/secuencial/divergente del skill no aplican aquí.
+
+### Pruebas realizadas
+
+**Automatizadas** (`backend/tests/test_admin.py`, con `pytest`):
+1. `most_frequent([])` → `None` (sin datos).
+2. `most_frequent` con un ganador claro → lo identifica correctamente.
+3. `most_frequent` con empate → gana el valor más bajo.
+4. `most_recommended_career_id` sin resultados → `None`.
+5. `most_recommended_career_id` tallando correctamente las top-3 carreras de cada resultado a través de varios perfiles.
+6. `most_recommended_career_id` con empate entre carreras de distintos perfiles → gana la de menor id.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl):
+1. `GET /admin/analytics` sin token → `401`; con usuario normal → `403`; con admin → `200`.
+2. Con 5 resultados reales en la base (2 SOCIAL, 2 TECNICO, 1 ANALITICO — un empate real entre SOCIAL y TECNICO), el endpoint devolvió `SOCIAL` como perfil más frecuente (desempate correcto por menor id) y `Psicología` como carrera más recomendada; se verificó a mano que el conteo era coherente con el desempate esperado entre las carreras de ambos perfiles empatados.
+
+### Frontend
+
+Se agregó una tercera pestaña "Analítica" a la vista de administración (`admin.js`), junto a "Preguntas" y "Carreras" (HU-10), con tres stat tiles: tests completados, perfil más frecuente y carrera más recomendada.
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó que la pestaña de analítica se sirve correctamente y que replica fielmente la respuesta de la API en cada caso probado, pero la disposición visual de los stat tiles debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, con el usuario admin.

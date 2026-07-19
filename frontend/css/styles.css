@@ -352,3 +352,35 @@ body {
   border-radius: 999px;
   margin-left: 0.5rem;
 }
+
+.stat-tile-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-tile {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.stat-tile-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: #57606a;
+}
+
+.stat-tile-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #24292f;
+  font-variant-numeric: proportional-nums;
+}
+
+.stat-tile-value--text {
+  font-size: 1.15rem;
+  line-height: 1.3;
+}

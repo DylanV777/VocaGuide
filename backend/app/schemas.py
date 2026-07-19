@@ -127,3 +127,9 @@ class CareerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
     profile_id: int | None = None
+
+
+class AdminAnalyticsOut(BaseModel):
+    total_completed_tests: int
+    most_frequent_profile: VocationalProfileOut | None
+    most_recommended_career: CareerOut | None
