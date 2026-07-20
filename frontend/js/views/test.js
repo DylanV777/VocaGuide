@@ -7,7 +7,7 @@ const LIKERT_LABELS = [
 ];
 
 async function renderTestView(container) {
-  container.innerHTML = `<section class="test-card"><p>Cargando preguntas...</p></section>`;
+  container.innerHTML = `<section class="card"><p>Cargando preguntas...</p></section>`;
 
   let questions;
   try {
@@ -29,7 +29,7 @@ async function renderTestView(container) {
     const currentAnswer = answers[question.id];
 
     container.innerHTML = `
-      <section class="test-card">
+      <section class="card">
         <p class="test-progress">Pregunta ${currentIndex + 1} de ${total} · Respondidas: ${answeredCount}/${total}</p>
         <h1>${question.text}</h1>
         <div class="likert" role="radiogroup">
@@ -45,8 +45,8 @@ async function renderTestView(container) {
           }).join("")}
         </div>
         <div class="test-nav">
-          <button type="button" id="prev-btn" ${currentIndex === 0 ? "disabled" : ""}>Anterior</button>
-          <button type="button" id="next-btn" disabled>${isLast ? "Enviar" : "Siguiente"}</button>
+          <button type="button" id="prev-btn" class="btn btn-secondary" ${currentIndex === 0 ? "disabled" : ""}>Anterior</button>
+          <button type="button" id="next-btn" class="btn btn-primary" disabled>${isLast ? "Enviar" : "Siguiente"}</button>
         </div>
         <p id="test-message" class="message"></p>
       </section>

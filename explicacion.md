@@ -403,15 +403,15 @@ Al probar `POST /admin/questions` por primera vez, la base de datos devolvió `d
 
 ### Frontend
 
-No se construyó una interfaz de administración en esta historia. El alcance del proyecto (ver `Plan_Ruta_CareerPath_Individual.md`) no incluye una pantalla de administración entre sus entregables de Fase 5 más allá del backlog técnico `ADMIN-01`/`ADMIN-02`, que se limita a los endpoints; y sin un usuario admin real en producción/demo, una UI dedicada no tendría quién la probara más allá de lo ya cubierto por las pruebas manuales vía API. Si la sustentación lo requiere, se puede probar el CRUD directamente desde `/docs` (Swagger) autenticándose con un usuario admin.
+No se construyó una interfaz de administración en esta historia; se dejó como CRUD solo de API, probado desde `/docs` (Swagger) autenticándose con un usuario admin. La brecha frontend se cerró después, a solicitud explícita del usuario, en **HU-08b** (ver más abajo).
 
 ---
 
-## HU-10 · Gestionar preguntas y carreras desde la interfaz — **Should**
+## HU-08b · Gestionar preguntas y carreras desde la interfaz — **Should**
 
 > *Como administrador, quiero gestionar preguntas y carreras desde una pantalla propia de la aplicación en vez de usar Swagger o la base de datos directamente, para poder mantener el contenido del test de forma más ágil.*
 
-Historia adicional, agregada después de HU-08 a solicitud explícita del usuario, para cerrar la brecha frontend que esa historia había dejado intencionalmente abierta. El detalle completo (título, criterios de aceptación y backlog técnico) está en su propio archivo, [`HU-10_Administracion_Interfaz.md`](HU-10_Administracion_Interfaz.md), redactado con el mismo formato usado en `Plan_Ruta_CareerPath_Individual.md`. Aquí solo se documenta el proceso de implementación.
+Historia adicional dentro del alcance de HU-08 (el plan de ruta original ya pedía poder "crear, editar y eliminar sin salir de la aplicación", pero HU-08 solo se implementó a nivel de API — ver su sección "Frontend" arriba). Se numera **HU-08b** en vez de HU-10 para no chocar con la HU-10 definida más adelante en el plan de ruta ("Sistema de diseño y tema visual"), que es una historia distinta. Aquí se documenta el proceso completo de esta extensión frontend.
 
 ### Criterios de aceptación y cómo se cumplieron
 
@@ -491,3 +491,152 @@ Se agregó una tercera pestaña "Analítica" a la vista de administración (`adm
 ### Pendiente de verificación manual en navegador
 
 Se confirmó que la pestaña de analítica se sirve correctamente y que replica fielmente la respuesta de la API en cada caso probado, pero la disposición visual de los stat tiles debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real, con el usuario admin.
+
+---
+
+## HU-10 · Sistema de diseño y tema visual — **Should**
+
+> *Como usuario, quiero una interfaz con estilo visual coherente (colores, tipografía, espaciados) para que la plataforma se sienta profesional y agradable.*
+
+### Criterios de aceptación y cómo se cumplieron
+
+| Criterio | Cómo se implementó |
+|---|---|
+| Paleta de colores, tipografía y componentes base reutilizables (botones, tarjetas, inputs) | `frontend/css/styles.css` se reescribió alrededor de **design tokens** en `:root`: escala de color (primario, peligro, éxito, texto, bordes, superficies, estado deshabilitado), escala tipográfica (`--text-xs` a `--text-2xl`), escala de espaciado de 4px (`--space-1` a `--space-6`), radios de borde y una sombra de tarjeta única. Sobre esos tokens se construyeron los componentes base: `.card` (con modificadores `--sm`, `--lg`, `--center`), `.btn` (con variantes `-primary`, `-secondary`, `-outline`, `-danger-outline`, `-link` y tamaño `-sm`), y estilos globales para `input`/`select`/`textarea`/`label` que aplican a cualquier formulario sin necesidad de clases adicionales. |
+| Todas las pantallas aplican el mismo estilo de forma consistente | Se migraron a estos componentes las seis vistas que ya existían (`register.js`, `login.js`, `test.js`, `results.js`, `careers.js`, `history.js`) reemplazando sus clases de tarjeta específicas (`auth-card`, `test-card`, `results-card`, `careers-catalog-card`) por `.card` + el modificador correspondiente, y sus botones sueltos por `.btn` + variante. |
+| Los elementos interactivos tienen estados visibles: hover, foco, activo y deshabilitado | Selector global `:focus-visible` (cubre `a`, `button`, `input`, `select`, `textarea` y cualquier `[tabindex]`) que aplica el mismo anillo de foco en toda la app sin repetirlo por componente. Cada variante de `.btn` define su propio `:hover` y `:active`; `.btn:disabled` tiene un estado visual compartido (fondo/color atenuado + cursor `not-allowed`). |
+
+### Un bug real encontrado y corregido durante esta historia
+
+Al revisar qué pantallas ya habían sido migradas al nuevo sistema de diseño, `frontend/js/views/admin.js` (la vista de administración de HU-08b) seguía usando clases de la versión anterior del CSS: `careers-catalog-card`, `admin-card` y `admin-cancel-btn`. Ninguna de las tres existe ya en `styles.css` — se habían renombrado o eliminado al construir el nuevo sistema de tarjetas —, así que la pantalla de administración se habría visto completamente sin estilo (tarjeta sin fondo ni sombra, botones de "Crear", "Cancelar", "Editar" y "Eliminar" con la apariencia por defecto del navegador) apenas alguien la abriera en un navegador, mientras el resto de la aplicación ya lucía consistente. No se había detectado antes porque el trabajo de diseño visual se probó pantalla por pantalla y `admin.js` fue la última en revisarse. Se corrigió reemplazando esas clases por `card card--lg` y agregando las clases `.btn` correspondientes a cada botón (`btn-primary` para crear/guardar, `btn-secondary` para cancelar, `btn-outline btn-sm` para editar, `btn-danger-outline btn-sm` para eliminar).
+
+### Decisiones técnicas
+
+- **Tokens como variables CSS (`:root`), no un preprocesador (Sass/Less)**: el stack del proyecto es JS vanilla sin build tool (decisión ya tomada en Fase 0); agregar un preprocesador solo para variables habría introducido un paso de compilación que el resto del frontend no tiene. Las variables CSS nativas ya tienen el soporte de navegador necesario y se pueden usar directamente en los archivos servidos tal cual.
+- **`.btn`/`.card` como clases de utilidad compuestas (base + modificador)** en vez de una clase distinta por combinación (por ejemplo, una única `.btn-primary-sm`): siguiendo el mismo principio ya usado en el proyecto de preferir composición simple sobre una matriz de clases, `class="btn btn-primary btn-sm"` cubre cualquier combinación de variante y tamaño sin que el CSS tenga que anticipar cada mezcla.
+- **`:active` explícito en todas las variantes de `.btn` y en `.career-item--clickable`**: al revisar el criterio de aceptación ("hover, foco, activo y deshabilitado") se notó que solo `.btn-primary` y los botones de navegación tenían un estado `:active` definido; las demás variantes (`-secondary`, `-outline`, `-danger-outline`, `-link`) dependían del estilo por defecto del navegador, que no es visible en botones con estilo plano. Se agregó `:active` a cada una para que el criterio se cumpla de forma pareja en todos los botones, no solo en el primario.
+- **Las tarjetas de carrera del catálogo (`career-item--clickable`) no eran alcanzables por teclado**: el CSS ya traía la regla `[tabindex]:focus-visible` (parte del selector global de foco), pero ningún elemento la usaba porque el `<li>` clicable de `careers.js` no tenía `tabindex`. Sin eso, el criterio "foco" era literalmente imposible de cumplir en ese elemento (no hay estado de foco que mostrar si el elemento nunca puede recibirlo). Se agregó `tabindex="0"` y `role="button"`, junto con un manejador de `keydown` para `Enter`/`Espacio` que dispara la misma acción que el clic — sin este último paso, el elemento habría quedado enfocable pero inerte al teclado, un estado a medias peor que no tocarlo. Esta corrección puntual no reemplaza la revisión de accesibilidad completa que le corresponde a HU-17 (navegación por teclado en general, contraste WCAG AA, textos alternativos); se limitó a lo estrictamente necesario para que el criterio de "foco visible" de esta historia tuviera sentido en este componente.
+- **No se tocó la barra de navegación (`.nav-bar button`) ni las pestañas de administración (`.admin-tab`)** para usar clases `.btn`: ya tenían su propio estilo dedicado, coherente con la paleta y con sus propios estados hover/active, construido antes de esta historia; envolverlos en `.btn` habría significado pelear contra estilos ya correctos sin ganar nada.
+- **Sin librería de componentes ni framework CSS (Bootstrap, Tailwind)**: se evaluó implícitamente al construir esto desde cero en vez de sumar una dependencia; el alcance visual (botones, tarjetas, inputs, un puñado de estados) es pequeño y ya cubierto con ~250 líneas de CSS propio, sin el peso ni la curva de aprendizaje de una librería completa para un proyecto que ya tiene todo su stack definido sin frameworks de frontend.
+
+### Pruebas realizadas
+
+Este es un cambio puramente visual/de marcado (CSS + clases HTML), sin lógica de negocio nueva que aislar en una función pura, así que no aplica el patrón de pruebas automatizadas con `pytest` usado en HU-04/05/08/09. Se verificó de forma estática, sin navegador disponible en este entorno:
+
+1. Búsqueda exhaustiva (`grep`) de las clases de tarjeta antiguas (`careers-catalog-card`, `auth-card`, `test-card`, `results-card`, `admin-card`, `admin-cancel-btn`, `back-link`) en todo `frontend/`, confirmando que no queda ninguna referencia sin migrar tras corregir `admin.js`.
+2. Revisión manual, vista por vista, de que cada `<button>` en el HTML generado por cada archivo de `js/views/` tiene una clase `.btn` (excepto los de la barra de navegación y las pestañas de administración, que tienen su propio estilo dedicado y ya eran consistentes antes de esta historia).
+3. Revisión de que cada variante de `.btn` y `.career-item--clickable` tiene definidos sus cuatro estados (`:hover`, `:focus-visible` vía el selector global, `:active`, `:disabled` donde aplica) directamente en `styles.css`.
+
+### Pendiente de verificación manual en navegador
+
+Todo lo anterior se verificó revisando el CSS y el HTML que genera cada vista, pero la apariencia final (colores realmente aplicados, alineación, y sobre todo que los estados `:hover`/`:focus`/`:active` se vean como se espera al interactuar) debe confirmarse abriendo `http://127.0.0.1:5500` en un navegador real y recorriendo las pantallas: registro, login, test (incluyendo navegar con Tab entre opciones), resultados, catálogo de carreras (incluyendo enfocar una tarjeta con Tab y activarla con Enter), historial y administración (las tres pestañas, con un usuario admin).
+
+---
+
+## Cerrar sesión — complemento de HU-02
+
+No es una historia de usuario del plan de ruta; es el complemento natural de HU-02 (Inicio de sesión), agregado a solicitud explícita del usuario: una vez dentro de la cuenta, hacía falta una forma de terminar la sesión desde la propia interfaz (antes solo se podía "salir" borrando `localStorage` manualmente desde DevTools).
+
+### Cómo se implementó
+
+- **Botón "Cerrar sesión" en la barra de navegación persistente** (`renderNav()`, `frontend/js/app.js`): se agrega junto a "Test vocacional", "Catálogo de carreras", "Mi historial" y (si aplica) "Administración", ya que esa barra solo se renderiza cuando hay una sesión activa (`localStorage.access_token` presente).
+- **Al hacer clic**: se eliminan `access_token` y `user_role` de `localStorage`, se vuelve a llamar `renderNav()` (que ahora renderiza vacío, al no encontrar token) y se muestra `renderLoginView(appContainer)`.
+
+### Decisiones técnicas
+
+- **Solo del lado del cliente, sin endpoint de backend**: la autenticación es JWT stateless (HS256, sin sesiones ni refresh tokens en servidor — decisión ya documentada en HU-02), así que no hay nada que invalidar en la base de datos. El token técnicamente sigue siendo válido hasta su expiración natural (60 minutos) aunque el cliente deje de usarlo; agregar una lista de revocación de tokens solo para esta acción habría sido infraestructura nueva desproporcionada para lo que pide "cerrar sesión" en el alcance de este proyecto. Es la misma compensación entre simplicidad y statelessness ya aceptada en HU-02.
+- **Botón alineado a la derecha de la barra (`margin-left: auto`) y con paleta neutra** (`--color-text-muted`, `--color-border-strong`) en vez de la paleta primaria que usan los demás botones de navegación: es una acción de salida, no una sección más de la app, y separarla visualmente evita que se confunda con un destino de navegación.
+- **Reutiliza `renderNav()` y `renderLoginView()` ya existentes**: no se creó ningún archivo nuevo ni lógica adicional; el flujo de logout es simétrico al de login (mismo contenedor, misma función de navegación).
+
+### Pruebas realizadas
+
+Sin backend involucrado, no aplica ninguna prueba automatizada nueva. Verificación manual pendiente en navegador: iniciar sesión, confirmar que aparece "Cerrar sesión" en la nav, hacer clic y confirmar que vuelve a la pantalla de login, que la barra de navegación desaparece, y que recargar la página después ya no restaura la sesión (por no quedar `access_token` en `localStorage`).
+
+---
+
+## Datos de perfil en el registro — complemento de HU-01
+
+No es una historia del plan de ruta; es una ampliación explícita del formulario de registro (HU-01), agregando nombre, apellido, país y género como datos obligatorios de la cuenta.
+
+### Cómo se implementó
+
+| Campo | Modelo (`models.py`) | Validación (`schemas.py`, `UserCreate`) |
+|---|---|---|
+| Nombre | `first_name`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| Apellido | `last_name`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| País | `country`, `String(100)`, nullable | `Field(min_length=1, max_length=100)`, obligatorio |
+| Género | `gender`, `String(20)`, nullable, `CHECK (gender IN ('hombre','mujer'))` | `Literal["hombre", "mujer"]`, obligatorio |
+
+Migración nueva `b6d2a1f4c7e9_add_profile_fields_to_users.py` (encadenada después de `057904244978`, la última existente): agrega las cuatro columnas a `users` y el `CHECK` de género. `POST /auth/register` (`routers/auth.py`) ahora recibe estos cuatro campos en `UserCreate` y los pasa al constructor de `User`. `UserOut` (usado por `/auth/register` y `/auth/me`) los expone también.
+
+### Decisiones técnicas
+
+- **Columnas nullable a nivel de base de datos, obligatorias a nivel de API**: la tabla `users` ya tenía filas de usuarios reales creados durante las pruebas manuales de HU-01 a HU-10 (`jairo@example.com`, el usuario admin, etc.), ninguna con estos datos. Agregar las columnas como `NOT NULL` habría roto la migración contra esas filas existentes (no hay ningún valor razonable que rellenar automáticamente para "nombre" o "país" de un usuario ya creado). Se optó por el mismo patrón que ya usa `role`: la integridad fuerte de negocio ("todo usuario *nuevo* debe traer estos datos") se garantiza en la capa de Pydantic (`UserCreate` los declara sin valor por defecto, así que faltan → `422`), mientras que la base de datos permite `NULL` para no invalidar el histórico. Los usuarios registrados antes de esta historia simplemente quedan con estos campos en `NULL`; no se hizo ningún backfill porque no hay ningún dato real que inferir para ellos.
+- **`CHECK (gender IN ('hombre', 'mujer'))` a nivel de base de datos, además de `Literal[...]` en Pydantic**: mismo doble-candado ya usado en `role` (`ck_users_role`) — un valor fuera de las dos opciones no puede llegar a la base de datos ni siquiera si se inserta por fuera de la API. Se limitó exactamente a las dos opciones que se pidieron explícitamente ("hombre, mujer"), sin agregar opciones adicionales no solicitadas (por ejemplo "otro"); si en el futuro se requiere ampliar el conjunto de valores, es un cambio de una sola migración (agregar el valor al `CHECK` y al `Literal`), no un rediseño.
+- **País como texto libre (`String(100)`), no un selector con lista fija de países**: no existe en el proyecto ningún catálogo de países ya definido, y construir/mantener uno (con sus códigos ISO, etc.) es complejidad no pedida por el alcance actual. Un campo de texto simple cumple el requisito ("¿de qué país es?") sin esa sobre-ingeniería.
+- **Sin endpoint para editar estos datos después del registro**: no se pidió como parte de esta ampliación (solo se pidió agregarlos "en el formulario de registrarse"); agregar edición de perfil habría sido una historia de usuario nueva no solicitada.
+- **El formulario de registro pide estos cuatro campos antes que correo/contraseña**: orden pensado como flujo natural de un formulario de registro (quién eres → cómo te identificas en el sistema), sin ningún requisito funcional detrás; es una decisión puramente de UX, fácil de reordenar si no se prefiere así.
+
+### Un problema operativo encontrado (no relacionado con el código)
+
+Al probar el nuevo endpoint contra el servidor que ya estaba corriendo, la respuesta ignoró los cuatro campos nuevos sin error (devolvió `201` con el `UserOut` viejo). Causa: ese proceso de `uvicorn` se había iniciado sin la bandera `--reload` (`uvicorn app.main:app --port 8000`), así que seguía sirviendo el código anterior a los cambios de `models.py`/`schemas.py`/`auth.py`, y FastAPI/Pydantic simplemente descarta del payload cualquier campo que el esquema activo no reconozca, en vez de fallar. Se reinició el servidor con `--reload` para que futuros cambios de código se reflejen automáticamente sin reinicios manuales.
+
+### Pruebas realizadas
+
+**Automatizadas**: no se agregó ninguna nueva; `pytest` (22 pruebas existentes) se corrió después del cambio para confirmar que nada se rompió — en particular `test_auth.py::make_user`, que construye un `User` del ORM directamente sin pasar los campos nuevos, sigue funcionando porque son nullable a nivel de modelo.
+
+**Manuales end-to-end** (backend real + PostgreSQL real, vía curl, tras aplicar la migración con `alembic upgrade head`):
+1. Registro con los cuatro campos y credenciales válidas → `201`, con `first_name`, `last_name`, `country` y `gender` presentes en la respuesta.
+2. Registro con `gender: "otro"` (valor fuera de las dos opciones permitidas) → `422`, mensaje de Pydantic indicando que solo se acepta `'hombre'` o `'mujer'`.
+3. Registro sin `first_name` → `422`, "Field required".
+
+### Frontend
+
+Se amplió `frontend/js/views/register.js`: el formulario ahora pide Nombre, Apellido, País (campos de texto) y Género (`<select>` con "Hombre"/"Mujer", sin opción preseleccionada válida — la primera opción es un placeholder deshabilitado que obliga a elegir explícitamente), antes de los campos de correo y contraseña ya existentes. Los cuatro se envían junto con `email`/`password` en el mismo `POST /auth/register`.
+
+### Pendiente de verificación manual en navegador
+
+Se confirmó el flujo completo por API (incluyendo los casos de error), pero la experiencia del formulario (orden visual de los campos, comportamiento del `<select>` de género, mensajes de error en pantalla) debe confirmarse abriendo la app en un navegador real.
+
+---
+
+## Dockerizar el backend — simplificar la reproducción del proyecto
+
+No es una historia de usuario; es una mejora de infraestructura de desarrollo, pedida explícitamente para que un colaborador (o un líder que solo quiere revisar el proyecto) pueda levantarlo con el mínimo de pasos posible, sin instalar Python 3.12 ni crear un entorno virtual manualmente.
+
+### Cómo se implementó
+
+- **`backend/Dockerfile`**: imagen basada en `python:3.12-slim` (misma versión ya exigida por el proyecto), instala `requirements.txt`, copia el código y arranca con un comando que primero corre `alembic upgrade head` en un bucle de reintentos y luego `uvicorn --host 0.0.0.0 --reload`.
+- **`backend/.dockerignore`**: excluye `venv/`, `__pycache__/`, `.env`, `.pytest_cache/` y `tests/` de la imagen (nada de eso debe viajar dentro del contenedor).
+- **`docker-compose.yml`**: se agregó el servicio `backend` (se construye desde `./backend`), con `depends_on: db: condition: service_healthy` y las variables `DATABASE_URL`/`JWT_SECRET_KEY` puestas directamente ahí (host `db`, el nombre del servicio, en vez de `localhost`). Se agregó un `healthcheck` (`pg_isready`) al servicio `db`, que antes no lo tenía. Se montan `./backend/app` y `./backend/alembic` como volúmenes dentro del contenedor, para que los cambios de código en el host se reflejen de inmediato gracias a `--reload`, sin reconstruir la imagen en cada edición.
+
+### Un bug real encontrado y corregido durante esta historia
+
+Al probar el flujo completo simulando a un colaborador nuevo (un proyecto de Docker Compose aparte, con un volumen de PostgreSQL totalmente vacío, para no usar los datos ya existentes en el entorno de Jairo), el contenedor `backend` entró en un **crash-loop**: `alembic upgrade head` fallaba con `sqlalchemy.exc.OperationalError: ... Name or service not known` al intentar resolver el hostname `db`, a pesar de que `depends_on: condition: service_healthy` ya había confirmado que Postgres estaba `healthy`. Causa: que Postgres esté "healthy" (acepta conexiones) no garantiza que la resolución de nombres interna de Docker para el contenedor `backend` esté lista en ese mismo instante — es una condición de carrera conocida, más notoria en Docker Desktop sobre Windows. El primer intento de esta prueba en el entorno normal de Jairo (con datos ya existentes) también había fallado una vez de la misma forma silenciosa, pero como el segundo intento funcionó, en su momento pareció un evento aislado; al reproducirlo desde cero quedó claro que era este problema de fondo, no una casualidad.
+
+Se corrigió cambiando el comando de arranque del contenedor de un solo intento (`alembic upgrade head && uvicorn ...`) a un bucle de reintentos (`until alembic upgrade head; do echo ...; sleep 2; done && exec uvicorn ...`): si la conexión falla (por DNS todavía no resuelto o porque Postgres de verdad no está listo), simplemente reintenta cada 2 segundos hasta lograrlo, en vez de morir en el primer intento. Es el patrón estándar de "esperar a la base de datos" en Docker Compose, y cubre de paso cualquier otra causa de arranque lento de la base de datos, no solo el problema de DNS puntual que se observó.
+
+### Decisiones técnicas
+
+- **Variables de entorno para el contenedor definidas directamente en `docker-compose.yml`, no en `backend/.env`**: el objetivo explícito de esta historia es que un colaborador *no* tenga que crear ni editar ningún archivo para correr el proyecto. El flujo con `.env` (documentado en el README como "alternativa sin Docker") sigue existiendo intacto para quien prefiera correr el backend con `venv` directamente en su máquina (por ejemplo, para depurar con breakpoints del IDE sin entrar al contenedor). El `JWT_SECRET_KEY` de desarrollo que queda en `docker-compose.yml` es un valor fijo, documentado como solo apto para desarrollo local — el mismo criterio que ya aplicaba `.env.example` con su placeholder.
+- **Healthcheck en `db` (`pg_isready`) agregado como parte de esta historia**: no existía antes porque no hacía falta (nada dependía de la base de datos a nivel de Docker Compose hasta ahora). Es un prerrequisito de `depends_on: condition: service_healthy`, pero —como muestra el bug de arriba— no es suficiente por sí solo; se mantiene igual porque reduce la ventana del problema (sin él, `backend` arrancaría inmediatamente después de que el contenedor de `db` exista, sin esperar nada) y el bucle de reintentos cubre el resto.
+- **Bind mounts de `app/` y `alembic/` (no todo el proyecto) hacia el contenedor**: permite seguir editando código y ver el efecto con `--reload` sin reconstruir la imagen, igual que el flujo de `venv` de siempre. No se montó `requirements.txt` ni el resto del proyecto porque un cambio de dependencias sí debe forzar una reconstrucción de imagen (`docker compose up -d --build`), para no tener un contenedor con código nuevo corriendo contra dependencias viejas sin que nadie lo note.
+- **`tests/` excluido de la imagen (`.dockerignore`)**: el contenedor está pensado para *correr* la aplicación, no para ejecutar su batería de pruebas; `pytest` se sigue corriendo contra el entorno `venv` local, documentado aparte en el README. Meter las pruebas dentro de la imagen de producción/demo no aporta nada al caso de uso que motivó esta historia (que alguien pueda levantar y usar la app).
+- **No se dockerizó también el frontend**: es JS vanilla sin paso de build, así que Live Server o `python -m http.server` ya son igual de simples (o más) que agregar un contenedor Nginx solo para servir archivos estáticos; hacerlo habría sido complejidad sin beneficio real para este proyecto.
+- **`README.md` reestructurado** para presentar el camino con Docker como el recomendado/rápido, y el flujo manual con `venv` como alternativa explícita para quien necesite depurar el backend directamente en su máquina.
+
+### Pruebas realizadas
+
+Dado que este cambio es de infraestructura (no hay lógica de negocio nueva que probar con `pytest`), la verificación fue completamente manual, sobre Docker real:
+
+1. **Sobre el entorno existente de Jairo** (`docker compose up -d --build`): la imagen construyó correctamente, las migraciones corrieron (sin aplicar nada nuevo, porque esa base ya estaba al día por pruebas anteriores con `venv`), y `POST /auth/register` respondió `201` con los datos completos.
+2. **Simulación de un colaborador nuevo**, en un proyecto de Docker Compose separado (`docker compose -p careerpath-freshtest up -d --build`) con su propio volumen de PostgreSQL vacío, para no arriesgar los datos reales del entorno de Jairo:
+   - Primer intento: reprodujo el bug de DNS descrito arriba (crash-loop).
+   - Tras el fix del bucle de reintentos: las **ocho migraciones corrieron en orden desde cero** (creación de tablas, semillas de perfiles/preguntas/carreras, fix de secuencias, y la migración de datos de perfil de HU-01) y el contenedor quedó estable.
+   - `POST /auth/register` → `201`; `POST /auth/login` → `200` con token; `GET /careers` con ese token → `200` con las 20 carreras semilla.
+   - Se destruyó el proyecto de prueba (`docker compose -p careerpath-freshtest down -v`), eliminando su volumen aparte, sin tocar el volumen real del proyecto de Jairo.
+3. **Verificación de que los datos reales de Jairo sobrevivieron** a todo el proceso: tras devolver `docker compose up -d` al proyecto normal, la tabla `users` seguía con sus filas (`SELECT count(*) FROM users` sin cambios respecto a antes de la prueba).
+
+### Pendiente
+
+Verificación manual en navegador de que el frontend, apuntando al backend ahora servido desde Docker en `http://localhost:8000`, funciona igual que con el backend corrido vía `venv` (no debería haber diferencia, ya que el contrato de la API no cambió, pero queda pendiente confirmarlo visualmente junto con el resto de verificaciones de navegador ya anotadas en historias anteriores).

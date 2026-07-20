@@ -91,6 +91,70 @@ Se redujo el backlog a las historias estrictamente necesarias para que el MVP fu
 - El sistema muestra el número total de tests completados.
 - Solo usuarios con rol admin pueden acceder a esta vista.
 
+## Diseño y consistencia visual
+
+### HU-10 · Sistema de diseño y tema visual — **Should**
+*Como usuario, quiero una interfaz con estilo visual coherente (colores, tipografía, espaciados) para que la plataforma se sienta profesional y agradable.*
+
+- Se define una paleta de colores, tipografía y componentes base reutilizables (botones, tarjetas, inputs).
+- Todas las pantallas aplican el mismo estilo de forma consistente.
+- Los elementos interactivos tienen estados visibles: hover, foco, activo y deshabilitado.
+
+### HU-11 · Modo claro / oscuro — **Could**
+*Como usuario, quiero alternar entre modo claro y oscuro para usar la plataforma según mi preferencia o entorno.*
+
+- Existe un botón visible para cambiar de tema.
+- La preferencia se conserva entre sesiones.
+- Ambos modos mantienen contraste y legibilidad adecuados.
+
+## Retroalimentación y estados
+
+### HU-12 · Estados de carga y vacío — **Should**
+*Como usuario, quiero ver indicadores mientras la app procesa datos y mensajes claros cuando no hay contenido, para saber siempre qué está pasando.*
+
+- Las peticiones al backend muestran un spinner o skeleton mientras cargan.
+- Las listas sin datos (historial, catálogo) muestran un estado vacío con mensaje e ícono, no una pantalla en blanco.
+- Los errores muestran un mensaje amigable con opción de reintentar.
+
+### HU-13 · Notificaciones y confirmaciones visuales — **Should**
+*Como usuario, quiero recibir avisos claros (toasts/alertas) tras mis acciones para confirmar que se realizaron correctamente.*
+
+- Acciones como registro, login, envío del test y operaciones de admin muestran una notificación de éxito o error.
+- Las notificaciones desaparecen solas y no bloquean la navegación.
+- El color y el ícono comunican el tipo de mensaje (éxito, error, info).
+
+## Experiencia del test y resultados
+
+### HU-14 · Barra de progreso del test — **Should**
+*Como usuario, quiero ver mi avance mientras respondo las 20 preguntas para saber cuánto me falta.*
+
+- Se muestra una barra o contador (ej. "Pregunta 7 de 20").
+- El progreso se actualiza al responder cada pregunta.
+- Se resalta visualmente si faltan preguntas por responder antes de enviar.
+
+### HU-15 · Resultados visuales con gráficos — **Should**
+*Como usuario, quiero ver mi perfil vocacional y recomendaciones con gráficos y tarjetas atractivas en lugar de solo texto.*
+
+- El perfil se muestra con un gráfico (barras, radar o similar).
+- Cada carrera recomendada aparece en una tarjeta con ícono, nombre y descripción.
+- El diseño resalta el resultado principal de forma visualmente clara.
+
+## Navegación y accesibilidad
+
+### HU-16 · Navegación y layout responsive — **Must/Should**
+*Como usuario, quiero una navegación clara y que la interfaz se adapte a móvil, tablet y escritorio.*
+
+- Existe una barra de navegación coherente que indica la sección actual.
+- Todas las pantallas se ven y funcionan bien en móvil y escritorio.
+- La opción "Administración" solo aparece visualmente para rol admin.
+
+### HU-17 · Accesibilidad básica — **Could**
+*Como usuario, quiero una interfaz accesible para poder usarla cómodamente sin importar mis capacidades.*
+
+- Contraste de color suficiente (WCAG AA) y tamaños de texto legibles.
+- Navegación por teclado y textos alternativos en íconos/imágenes.
+- Formularios con etiquetas y mensajes de error asociados.
+
 ---
 
 ## 4. Backlog técnico por fase

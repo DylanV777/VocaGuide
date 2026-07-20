@@ -1,6 +1,6 @@
 function renderLoginView(container) {
   container.innerHTML = `
-    <section class="auth-card">
+    <section class="card card--sm">
       <h1>Iniciar sesión</h1>
       <form id="login-form">
         <label for="email">Correo</label>
@@ -9,7 +9,7 @@ function renderLoginView(container) {
         <label for="password">Contraseña</label>
         <input type="password" id="password" required>
 
-        <button type="submit">Entrar</button>
+        <button type="submit" class="btn btn-primary">Entrar</button>
       </form>
       <p id="login-message" class="message"></p>
       <p><a href="#" id="go-to-register">¿No tienes cuenta? Regístrate</a></p>
