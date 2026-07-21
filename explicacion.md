@@ -640,3 +640,110 @@ Dado que este cambio es de infraestructura (no hay lógica de negocio nueva que 
 ### Pendiente
 
 Verificación manual en navegador de que el frontend, apuntando al backend ahora servido desde Docker en `http://localhost:8000`, funciona igual que con el backend corrido vía `venv` (no debería haber diferencia, ya que el contrato de la API no cambió, pero queda pendiente confirmarlo visualmente junto con el resto de verificaciones de navegador ya anotadas en historias anteriores).
+
+---
+
+## Rediseño visual de la pantalla de login — fondo oscuro + tarjeta en vidrio esmerilado
+
+Cambio puntual pedido explícitamente sobre `frontend/js/views/login.js` y `styles.css`: fondo negro semitransparente a pantalla completa y la tarjeta del formulario con efecto "difuminado" (vidrio esmerilado / glassmorphism).
+
+### Cómo se implementó
+
+- **`login.js`**: se envolvió la tarjeta existente (`<section class="card card--sm">`) en un `<div class="login-backdrop">`, y se le agregó la clase `card--glass` a la tarjeta, sin tocar el formulario, los campos ni la lógica de envío.
+- **`styles.css`**:
+  - `.login-backdrop`: capa `position: fixed; inset: 0` que cubre toda la ventana (no depende del layout de `body`/`#app`), con un fondo oscuro casi negro (`rgba(8,10,15,0.92)`) combinado con dos degradados radiales suaves (azul y morado, en las esquinas opuestas) — sin esos degradados, el fondo quedaba completamente plano y el `backdrop-filter: blur()` de la tarjeta no tenía nada visible que difuminar (se notó exactamente ese problema en la primera captura de prueba, ver más abajo).
+  - `.card--glass`: fondo blanco al 8% de opacidad + `backdrop-filter: blur(16px)` (con el prefijo `-webkit-` para Safari), borde blanco tenue y una sombra más pronunciada que la tarjeta normal, para que se despegue del fondo.
+  - Overrides de texto (`h1`, `label`, enlaces, mensajes de éxito/error) a tonos claros, ya que el texto oscuro por defecto de `.card` es ilegible sobre un fondo ahora oscuro.
+
+### Un bug real encontrado y corregido durante esta historia (detectado gracias a verificación visual real, no solo revisión de código)
+
+Al levantar el frontend y tomar una captura real con un navegador headless (Playwright) para verificar el cambio, los campos de correo y contraseña seguían viéndose blancos y opacos, ignorando por completo el estilo "vidrio" que se les había definido (`.card--glass input { background: rgba(255,255,255,0.12); ... }`). Causa: **especificidad CSS**. La regla global de inputs (`input:not([type="radio"]):not([type="hidden"]) { background: var(--color-surface); ... }`, definida en la sección "Campos de formulario" de `styles.css`) tiene mayor especificidad que `.card--glass input`, porque cada pseudo-clase `:not(...)` suma a la especificidad tanto como una clase — dos `:not()` pesan más que la única clase `.card--glass`. La regla más específica gana sin importar el orden en el archivo, así que el estilo "vidrio" perdía silenciosamente contra el estilo global, sin ningún error visible en consola. Se corrigió igualando la forma del selector global en el override: `.card--glass input:not([type="radio"]):not([type="hidden"])`, que ahora sí supera en especificidad a la regla genérica.
+
+Este bug no se habría detectado solo con inspección de código (el CSS "se veía correcto" a simple vista); solo apareció al renderizar la página de verdad y mirar el resultado.
+
+### Decisiones técnicas
+
+- **Verificación con navegador real (Playwright headless) en vez de solo inferir del CSS**: dado que este es un cambio puramente visual y el entorno de desarrollo no tiene un navegador gráfico interactivo disponible, se instaló Playwright (`npm install playwright` + `npx playwright install chromium`) en el directorio de scratchpad para tomar una captura de pantalla real de `http://127.0.0.1:5501` (un servidor estático temporal, separado del Live Server que ya tenía abierto el usuario en el puerto 5500, para no interferir con su sesión). Esto es justamente lo que permitió encontrar el bug de especificidad de arriba, que una revisión visual del código fuente no hubiera detectado.
+- **Degradados radiales sutiles en vez de negro plano**: el pedido fue "fondo negro transparentoso", pero un negro completamente plano deja al `backdrop-filter: blur` sin ningún detalle que difuminar, por lo que el efecto de vidrio esmerilado se vuelve invisible en la práctica (se confirmó este problema exacto en la primera captura de prueba). Se mantiene predominantemente oscuro/negro (92% de opacidad) — sigue leyéndose como "fondo negro transparentoso" — pero con dos manchas de color muy sutiles que le dan al `blur` algo que mostrar.
+- **Cambio limitado a la vista de login, no a registro**: se pidió explícitamente para "cuando el cliente se va a loguear"; `register.js` sigue usando `card card--sm` sin el fondo oscuro. Ambas pantallas quedan visualmente distintas a propósito (login como pantalla de entrada con tratamiento especial); si se prefiere extender el mismo efecto a registro, es un cambio de una sola clase adicional en `register.js` más su propio `<div class="login-backdrop">` (o renombrarlo a algo más genérico como `auth-backdrop` si se reutiliza).
+- **Sin imagen de fondo**: los degradados se generan con CSS puro (`radial-gradient`), sin necesitar ni alojar ningún archivo de imagen adicional.
+
+### Pruebas realizadas
+
+**Visual, con navegador real** (Playwright headless, capturas de pantalla revisadas directamente):
+1. Primera captura: fondo oscuro aplicado correctamente, pero inputs sin el estilo de vidrio (bug de especificidad descrito arriba) y sin degradados (el blur no se apreciaba).
+2. Tras corregir ambos problemas, segunda captura: fondo oscuro con los degradados sutiles, tarjeta y campos en vidrio esmerilado con el blur claramente visible contra el fondo, texto y enlaces legibles en tonos claros, botón "Entrar" con buen contraste.
+3. `console --errors` del navegador sin errores en ambas capturas.
+
+### Pendiente de verificación manual
+
+El comportamiento funcional (envío del formulario, mensajes de error/éxito, transición hacia el test tras un login exitoso) no cambió y ya estaba cubierto por las pruebas de HU-02; no se repitió aquí porque el cambio fue exclusivamente visual. Falta confirmar el efecto en modo responsive (móvil) y en un navegador real no headless, con la app corriendo contra el backend real.
+
+---
+
+## Extender la paleta oscura a registro y a toda la interfaz ya logueada
+
+Ampliación explícita de lo anterior: la misma paleta oscura + vidrio esmerilado debía verse también en la pantalla de registro y en toda la interfaz una vez el usuario ya inició sesión (test, catálogo, historial, administración, barra de navegación) — no solo en login.
+
+### Decisión clave: mover el efecto a los tokens de diseño, no repetirlo por pantalla
+
+En vez de copiar la clase `card--glass` y el fondo especial a cada vista (`register.js`, `test.js`, `careers.js`, `history.js`, `admin.js`), se llevó el cambio a la raíz: los tokens de color definidos en `:root` (`styles.css`), construidos en HU-10 precisamente para que todo el sistema de diseño se derive de un único lugar. Se redefinieron ahí:
+
+- `--color-bg`: ahora es el fondo oscuro con los dos degradados radiales (antes vivía solo en `.login-backdrop`), aplicado directamente en `body` con `background-attachment: fixed` (para que el degradado se mantenga fijo respecto a la ventana y no respecto al alto del contenido, que varía mucho entre, por ejemplo, login y la lista de administración).
+- `--color-surface` / `--color-surface-muted`: pasan de blanco sólido a blanco translúcido (vidrio).
+- `--color-text` / `--color-text-muted`: pasan de tonos oscuros a tonos claros.
+- `--color-border` / `--color-border-strong`: pasan a blanco translúcido tenue.
+- `--color-primary`, `--color-danger`, `--color-success` y sus variantes "surface": se aclararon/ajustaron para tener buen contraste sobre fondo oscuro (por ejemplo, los fondos "surface" que antes eran colores sólidos muy claros —pensados para resaltar sobre blanco— pasaron a ser el mismo color pero translúcido, para que sea sobre el vidrio oscuro).
+- `--color-disabled-bg` / `--color-disabled-text` y `--focus-ring`: mismo ajuste, adaptados a fondo oscuro.
+- `--shadow-card`: la sombra sutil pensada para tarjetas blancas sobre fondo claro se reemplazó por la sombra más pronunciada que ya se había definido para el vidrio de login.
+
+El componente `.card` (usado por las siete vistas del proyecto) se actualizó para incluir directamente `backdrop-filter: blur(16px)` y un borde translúcido, en vez de necesitar el modificador `.card--glass`. Como resultado, **todas** las pantallas que ya usaban `.card`, `.btn`, inputs globales, `.nav-bar`, `.career-item`, `.admin-form`, `.stat-tile`, etc. (es decir, toda la app, gracias a que HU-10 ya había migrado todo a este sistema de tokens) adoptaron la paleta oscura automáticamente, sin editar una sola línea de esas vistas.
+
+### Limpieza de código que quedó redundante
+
+Con el efecto ahora aplicado globalmente vía tokens, las reglas especiales creadas en la historia anterior (`.login-backdrop`, `.card--glass` y sus overrides de texto/inputs/enlaces) se volvieron innecesarias y se eliminaron de `styles.css`. `login.js` se revirtió a su estructura original simple (`<section class="card card--sm">`, sin el `<div>` envolvente ni la clase `card--glass`), porque el fondo oscuro ahora es una propiedad de `body`, no algo que cada vista tenga que montar por separado. Esto también corrige un efecto secundario de la implementación anterior: al usar `position: fixed` solo en login, esa pantalla quedaba perfectamente centrada verticalmente mientras que el resto de la app (incluida register) se alineaba arriba (por el `padding-top` de `body`). Ahora las siete pantallas comparten exactamente el mismo comportamiento de layout.
+
+### Verificación visual real (Playwright), no solo inspección de CSS
+
+Se reutilizó la instalación de Playwright de la historia anterior para tomar cuatro capturas reales contra el backend real (Docker) y un servidor estático temporal:
+
+1. **Login**: fondo oscuro con degradado, tarjeta en vidrio, ahora alineada arriba (consistente con el resto de la app) en vez de centrada verticalmente.
+2. **Registro**: mismos estilos — confirmando que los 6 campos nuevos de HU-01 (nombre, apellido, país, género, correo, contraseña) se ven legibles sobre vidrio oscuro, incluyendo el `<select>` de género.
+3. **Interfaz ya logueada (test vocacional)**: se hizo un login real contra la API (usuario `retest_uno@example.com`, creado en una prueba anterior) y se confirmó que la barra de navegación (botones "Test vocacional", "Catálogo de carreras", "Mi historial", "Cerrar sesión") se ve como píldoras de vidrio consistentes con el resto, y que la tarjeta de preguntas (opciones Likert, botones Anterior/Siguiente) mantiene buen contraste.
+4. **Catálogo de carreras**: confirmando que las tarjetas de carrera dentro de la lista también heredan el vidrio oscuro correctamente.
+
+Para poder hacer un login real desde el navegador de prueba (necesario para ver la nav y las pantallas protegidas, no solo login/registro que no requieren sesión) hizo falta que el backend aceptara peticiones CORS desde el puerto del servidor estático temporal (`5501`): se agregó ese origen a `allow_origins` en `main.py` **temporalmente**, se tomaron las capturas, y se revirtió el archivo a su configuración original (`5500`/`127.0.0.1:5500` únicamente) inmediatamente después. `console --errors` del navegador no mostró errores en ninguna de las cuatro capturas.
+
+### Decisiones técnicas
+
+- **Un solo punto de cambio (tokens) en vez de duplicar estilos por vista**: es la razón de ser del sistema de tokens construido en HU-10; esta historia es la prueba de que esa inversión rindió — extender la paleta a 7 pantallas tomó cambiar `:root` y `.card`, no seis archivos distintos.
+- **No se dockerizó ni se tocó nada del backend para este cambio**: es puramente visual (`styles.css`, `login.js`). El único tocado temporal a `main.py` (CORS) fue exclusivamente para poder *verificar* el cambio con una sesión real desde el entorno de pruebas, y se revirtió de inmediato; no forma parte del cambio en sí.
+- **Se mantuvieron los encabezados (`.card h1`) en azul de marca (`--color-primary`) en vez de blanco puro**: da jerarquía visual (el título se distingue del resto del texto claro) y aprovecha que el azul ya tenía buen contraste sobre fondo oscuro en las pruebas de la historia anterior.
+- **`background-attachment: fixed` en `body`**: sin esto, el degradado de fondo se posiciona relativo a la altura total del contenido (que crece mucho en, por ejemplo, la lista de administración con muchas preguntas), y las manchas de color podían terminar fuera de la vista inicial en pantallas con contenido largo. Fijar el fondo a la ventana garantiza que el degradado se vea igual sin importar cuánto contenido tenga cada pantalla.
+
+---
+
+## Marca y eslogan en la pantalla de login
+
+Pedido explícito: mostrar el nombre del proyecto arriba y, debajo, un mensaje motivacional corto dirigido a estudiantes que salen del colegio sin tener clara su vocación — la audiencia real del proyecto según el enunciado de CodeUp Riwi.
+
+### Cómo se implementó
+
+- **`login.js`**: se envolvió todo en un `<div class="login-page">` con tres partes: un wordmark `<h1>Career<span>Path</span></h1>`, la tarjeta de login (ahora con `<h2>Iniciar sesión</h2>` en vez de `<h1>`, porque el `<h1>` de la página pasó a ser el nombre del producto — hay que respetar que solo haya un `<h1>` real por pantalla), y un `<p class="login-tagline">` debajo de la tarjeta con el eslogan.
+- **Eslogan elegido**: *"¿Aún no sabes qué estudiar? No estás solo: vamos a descubrirlo juntos."* — corto (una sola oración con dos partes), empático (nombra la incertidumbre sin dramatizarla), y en primera persona del plural ("vamos", "juntos") para que la plataforma se sienta como acompañamiento y no como un test frío que evalúa.
+- **`styles.css`**: `.login-brand h1` con tipografía grande y bold (2.75rem, peso 800) para que lea como un logotipo, con "Career" en el color de texto principal y "Path" en el azul de marca (`<span>` interno) — un tratamiento de wordmark de dos colores, común en nombres de producto compuestos por dos palabras. `.login-tagline` en cursiva, tono atenuado (`--color-text-muted`) y ancho máximo limitado (340px) para que el mensaje se lea como una frase corta centrada, no como un párrafo ancho.
+- **`.card h1` se amplió a `.card h1, .card h2`** en `styles.css`, para que el nuevo `<h2>` de la tarjeta de login siga recibiendo el mismo estilo (color de marca, tamaño) que ya tenían los `<h1>` de las demás tarjetas (registro, test, resultados, etc.), que no se tocaron.
+
+### Decisiones técnicas
+
+- **Cambio limitado a login**: el wordmark y el eslogan solo se agregaron en `login.js`, no en `register.js` ni en el resto de vistas — es la puerta de entrada a la plataforma, el lugar natural para presentar la marca y el mensaje motivacional una sola vez, no en cada pantalla.
+- **Jerarquía semántica de encabezados corregida**: antes, "Iniciar sesión" era el único `<h1>` de la pantalla de login. Al agregar el nombre del producto como elemento más prominente, se degradó "Iniciar sesión" a `<h2>` para mantener un solo `<h1>` por página (relevante tanto para accesibilidad/lectores de pantalla como para SEO semántico, aunque esto último no aplique a una SPA sin indexación).
+- **Sin logotipo/imagen**: el "logo" es tipográfico (CSS puro, dos colores), consistente con el resto del proyecto (sin assets de imagen en ninguna pantalla hasta ahora).
+
+### Pruebas realizadas
+
+Verificación visual con Playwright (mismo mecanismo ya usado en las dos historias anteriores): captura de la pantalla de login confirmando que el wordmark, la tarjeta y el eslogan se ven correctamente espaciados y legibles sobre el fondo oscuro, sin errores de consola.
+
+### Pendiente de verificación manual
+
+Confirmar en un navegador real que el tamaño del wordmark (2.75rem) se ve proporcionado en pantallas pequeñas (móvil) — no se probó aún en modo responsive, igual que el resto de verificaciones de navegador real pendientes.

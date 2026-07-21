@@ -3,33 +3,36 @@
 /* ---------------------------------------------------------------------- */
 
 :root {
-  /* Color */
-  --color-primary: #2f6feb;
-  --color-primary-hover: #2158c4;
-  --color-primary-active: #1a48a3;
-  --color-primary-surface: #eef4ff;
+  /* Color — tema oscuro con tarjetas en vidrio esmerilado (glassmorphism) */
+  --color-primary: #4f7fff;
+  --color-primary-hover: #6f97ff;
+  --color-primary-active: #3960d1;
+  --color-primary-surface: rgba(79, 127, 255, 0.18);
 
-  --color-danger: #cf222e;
-  --color-danger-hover: #a8121d;
-  --color-danger-surface: #fdedee;
+  --color-danger: #ff6b6b;
+  --color-danger-hover: #ff8787;
+  --color-danger-surface: rgba(255, 107, 107, 0.18);
 
-  --color-success: #1a7f37;
+  --color-success: #4ade80;
 
-  --color-text: #24292f;
-  --color-text-muted: #57606a;
+  --color-text: #f2f4f8;
+  --color-text-muted: rgba(242, 244, 248, 0.65);
   --color-text-on-primary: #ffffff;
 
-  --color-border: #d7dce1;
-  --color-border-strong: #b9c0c7;
+  --color-border: rgba(255, 255, 255, 0.16);
+  --color-border-strong: rgba(255, 255, 255, 0.32);
 
-  --color-surface: #ffffff;
-  --color-surface-muted: #f9fafb;
-  --color-bg: #f4f5f7;
+  --color-surface: rgba(255, 255, 255, 0.08);
+  --color-surface-muted: rgba(255, 255, 255, 0.05);
+  --color-bg:
+    radial-gradient(circle at 20% 20%, rgba(79, 127, 255, 0.35), transparent 40%),
+    radial-gradient(circle at 85% 75%, rgba(140, 60, 220, 0.3), transparent 45%),
+    #0b0d12;
 
-  --color-disabled-bg: #c7d2e0;
-  --color-disabled-text: #ffffff;
+  --color-disabled-bg: rgba(255, 255, 255, 0.12);
+  --color-disabled-text: rgba(255, 255, 255, 0.4);
 
-  --focus-ring: 0 0 0 3px rgba(47, 111, 235, 0.35);
+  --focus-ring: 0 0 0 3px rgba(79, 127, 255, 0.45);
 
   /* Tipografía */
   --font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -55,7 +58,7 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-pill: 999px;
-  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
 
   --transition-fast: 120ms ease;
 }
@@ -72,6 +75,8 @@ body {
   font-family: var(--font-family);
   color: var(--color-text);
   background: var(--color-bg);
+  background-attachment: fixed;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -251,6 +256,9 @@ a:hover {
 
 .card {
   background: var(--color-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
   padding: var(--space-6);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -270,7 +278,8 @@ a:hover {
   text-align: center;
 }
 
-.card h1 {
+.card h1,
+.card h2 {
   color: var(--color-primary);
   font-size: var(--text-xl);
 }
@@ -278,6 +287,44 @@ a:hover {
 .card form {
   display: flex;
   flex-direction: column;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Marca y eslogan de la pantalla de login                                 */
+/* ---------------------------------------------------------------------- */
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.login-brand h1 span {
+  color: var(--color-primary);
+}
+
+.login-tagline {
+  margin-top: var(--space-5);
+  max-width: 340px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+  line-height: 1.5;
 }
 
 /* ---------------------------------------------------------------------- */
