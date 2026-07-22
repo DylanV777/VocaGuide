@@ -288,4 +288,9 @@ docker-compose.yml     # servicios db (PostgreSQL) y backend
 - **JWT stateless con HS256**: sin refresh tokens ni lista de revocación, dado el alcance del proyecto; el logout es solo del lado del cliente.
 - **Cálculo del perfil oculto al frontend**: `GET /test/questions` nunca expone a qué perfil pertenece cada pregunta, para que el resultado no pueda manipularse.
 - **Autorización por rol reforzada a nivel de router** (`require_role("admin")` aplicado a todo `/admin`), no endpoint por endpoint.
+<<<<<<< HEAD
 - **Sin frameworks de frontend ni build tool**: SPA en JS vanilla con un sistema de diseño propio basado en variables CSS (design tokens), suficiente para el alcance visual del proyecto.
+=======
+- **Sin frameworks de frontend ni build tool**: SPA en JS vanilla con un sistema de diseño propio basado en variables CSS (design tokens), suficiente para el alcance visual del proyecto.
+
+>>>>>>> 5ad9da6b714e684ba83913cb1f849f138b5ff57e

@@ -15,6 +15,7 @@ function renderNav() {
       <button type="button" id="nav-careers">Catálogo de carreras</button>
       <button type="button" id="nav-history">Mi historial</button>
       ${isAdmin ? '<button type="button" id="nav-admin">Administración</button>' : ""}
+      <button type="button" id="nav-logout" class="nav-logout">Cerrar sesión</button>
     </div>
   `;
 
@@ -25,6 +26,13 @@ function renderNav() {
   if (isAdmin) {
     navContainer.querySelector("#nav-admin").addEventListener("click", () => renderAdminView(appContainer));
   }
+
+  navContainer.querySelector("#nav-logout").addEventListener("click", () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_role");
+    renderNav();
+    renderLoginView(appContainer);
+  });
 }
 
 async function initApp() {

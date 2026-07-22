@@ -16,7 +16,7 @@ function wireAdminTabs(container, profiles) {
 
 async function renderAdminAnalytics(container, profiles) {
   container.innerHTML = `
-    <section class="careers-catalog-card admin-card">
+    <section class="card card--lg">
       ${renderAdminTabsHtml("analytics")}
       <h1>Analítica</h1>
       <p>Cargando estadísticas...</p>
@@ -29,7 +29,7 @@ async function renderAdminAnalytics(container, profiles) {
     analytics = await apiGet("/admin/analytics");
   } catch (error) {
     container.innerHTML = `
-      <section class="careers-catalog-card admin-card">
+      <section class="card card--lg">
         ${renderAdminTabsHtml("analytics")}
         <p class="message message--error">${error.message}</p>
       </section>
@@ -42,7 +42,7 @@ async function renderAdminAnalytics(container, profiles) {
   const careerValue = analytics.most_recommended_career ? analytics.most_recommended_career.name : "Sin datos todavía";
 
   container.innerHTML = `
-    <section class="careers-catalog-card admin-card">
+    <section class="card card--lg">
       ${renderAdminTabsHtml("analytics")}
       <h1>Analítica</h1>
 
@@ -66,13 +66,13 @@ async function renderAdminAnalytics(container, profiles) {
 }
 
 async function renderAdminView(container) {
-  container.innerHTML = `<section class="careers-catalog-card admin-card"><p>Cargando administración...</p></section>`;
+  container.innerHTML = `<section class="card card--lg"><p>Cargando administración...</p></section>`;
 
   let profiles;
   try {
     profiles = await apiGet("/admin/profiles");
   } catch (error) {
-    container.innerHTML = `<section class="careers-catalog-card admin-card"><p class="message message--error">${error.message}</p></section>`;
+    container.innerHTML = `<section class="card card--lg"><p class="message message--error">${error.message}</p></section>`;
     return;
   }
 
@@ -85,7 +85,7 @@ async function renderAdminQuestions(container, profiles) {
     questions = await apiGet("/admin/questions");
   } catch (error) {
     container.innerHTML = `
-      <section class="careers-catalog-card admin-card">
+      <section class="card card--lg">
         ${renderAdminTabsHtml("questions")}
         <p class="message message--error">${error.message}</p>
       </section>
@@ -97,7 +97,7 @@ async function renderAdminQuestions(container, profiles) {
   const profileName = (profileId) => profiles.find((p) => p.id === profileId)?.name ?? "—";
 
   container.innerHTML = `
-    <section class="careers-catalog-card admin-card">
+    <section class="card card--lg">
       ${renderAdminTabsHtml("questions")}
       <h1>Administrar preguntas</h1>
 
@@ -116,8 +116,8 @@ async function renderAdminQuestions(container, profiles) {
         <input type="number" id="question-order" min="1">
 
         <div class="admin-form-actions">
-          <button type="submit" id="question-submit">Crear pregunta</button>
-          <button type="button" id="question-cancel" class="admin-cancel-btn" hidden>Cancelar edición</button>
+          <button type="submit" id="question-submit" class="btn btn-primary">Crear pregunta</button>
+          <button type="button" id="question-cancel" class="btn btn-secondary" hidden>Cancelar edición</button>
         </div>
       </form>
       <p id="question-form-message" class="message"></p>
@@ -130,8 +130,8 @@ async function renderAdminQuestions(container, profiles) {
                 <p class="career-name">#${question.order} · ${profileName(question.profile_id)}</p>
                 <p class="career-description">${question.text}</p>
                 <div class="admin-item-actions">
-                  <button type="button" class="edit-question" data-id="${question.id}">Editar</button>
-                  <button type="button" class="delete-question" data-id="${question.id}">Eliminar</button>
+                  <button type="button" class="btn btn-outline btn-sm edit-question" data-id="${question.id}">Editar</button>
+                  <button type="button" class="btn btn-danger-outline btn-sm delete-question" data-id="${question.id}">Eliminar</button>
                 </div>
               </li>
             `
@@ -225,7 +225,7 @@ async function renderAdminCareers(container, profiles) {
     careers = await apiGet("/admin/careers");
   } catch (error) {
     container.innerHTML = `
-      <section class="careers-catalog-card admin-card">
+      <section class="card card--lg">
         ${renderAdminTabsHtml("careers")}
         <p class="message message--error">${error.message}</p>
       </section>
@@ -235,7 +235,7 @@ async function renderAdminCareers(container, profiles) {
   }
 
   container.innerHTML = `
-    <section class="careers-catalog-card admin-card">
+    <section class="card card--lg">
       ${renderAdminTabsHtml("careers")}
       <h1>Administrar carreras</h1>
 
@@ -254,8 +254,8 @@ async function renderAdminCareers(container, profiles) {
         </select>
 
         <div class="admin-form-actions">
-          <button type="submit" id="career-submit">Crear carrera</button>
-          <button type="button" id="career-cancel" class="admin-cancel-btn" hidden>Cancelar edición</button>
+          <button type="submit" id="career-submit" class="btn btn-primary">Crear carrera</button>
+          <button type="button" id="career-cancel" class="btn btn-secondary" hidden>Cancelar edición</button>
         </div>
       </form>
       <p id="career-form-message" class="message"></p>
@@ -268,8 +268,8 @@ async function renderAdminCareers(container, profiles) {
                 <p class="career-name">${career.name} <span class="career-profile-tag">${career.profile.name}</span></p>
                 <p class="career-description">${career.description}</p>
                 <div class="admin-item-actions">
-                  <button type="button" class="edit-career" data-id="${career.id}">Editar</button>
-                  <button type="button" class="delete-career" data-id="${career.id}">Eliminar</button>
+                  <button type="button" class="btn btn-outline btn-sm edit-career" data-id="${career.id}">Editar</button>
+                  <button type="button" class="btn btn-danger-outline btn-sm delete-career" data-id="${career.id}">Eliminar</button>
                 </div>
               </li>
             `

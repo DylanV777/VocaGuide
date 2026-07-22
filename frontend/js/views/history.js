@@ -6,19 +6,19 @@ function formatResultDate(isoDate) {
 }
 
 async function renderHistoryView(container) {
-  container.innerHTML = `<section class="careers-catalog-card"><p>Cargando historial...</p></section>`;
+  container.innerHTML = `<section class="card"><p>Cargando historial...</p></section>`;
 
   let history;
   try {
     history = await apiGet("/test/history");
   } catch (error) {
-    container.innerHTML = `<section class="careers-catalog-card"><p class="message message--error">${error.message}</p></section>`;
+    container.innerHTML = `<section class="card"><p class="message message--error">${error.message}</p></section>`;
     return;
   }
 
   if (history.length === 0) {
     container.innerHTML = `
-      <section class="careers-catalog-card">
+      <section class="card">
         <h1>Mi historial</h1>
         <p>Todavía no has completado el test vocacional.</p>
       </section>
@@ -27,7 +27,7 @@ async function renderHistoryView(container) {
   }
 
   container.innerHTML = `
-    <section class="careers-catalog-card">
+    <section class="card">
       <h1>Mi historial</h1>
       <ul class="careers-list">
         ${history

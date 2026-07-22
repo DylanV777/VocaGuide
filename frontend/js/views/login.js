@@ -1,19 +1,25 @@
 function renderLoginView(container) {
   container.innerHTML = `
-    <section class="auth-card">
-      <h1>Iniciar sesión</h1>
-      <form id="login-form">
-        <label for="email">Correo</label>
-        <input type="email" id="email" required>
+    <div class="login-page">
+      <div class="login-brand">
+        <h1>Career<span>Path</span></h1>
+      </div>
+      <section class="card card--sm">
+        <h2>Iniciar sesión</h2>
+        <form id="login-form">
+          <label for="email">Correo</label>
+          <input type="email" id="email" required>
 
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" required>
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required>
 
-        <button type="submit">Entrar</button>
-      </form>
-      <p id="login-message" class="message"></p>
-      <p><a href="#" id="go-to-register">¿No tienes cuenta? Regístrate</a></p>
-    </section>
+          <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+        <p id="login-message" class="message"></p>
+        <p><a href="#" id="go-to-register">¿No tienes cuenta? Regístrate</a></p>
+      </section>
+      <p class="login-tagline">¿Aún no sabes qué estudiar? No estás solo: vamos a descubrirlo juntos.</p>
+    </div>
   `;
 
   const form = container.querySelector("#login-form");

@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -7,6 +8,10 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    country: str = Field(min_length=1, max_length=100)
+    gender: Literal["hombre", "mujer"]
 
     @field_validator("password")
     @classmethod
@@ -26,6 +31,10 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     role: str
+    first_name: str | None
+    last_name: str | None
+    country: str | None
+    gender: str | None
     created_at: datetime
 
 
